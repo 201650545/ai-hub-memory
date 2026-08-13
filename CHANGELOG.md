@@ -9,6 +9,8 @@
 - Claude：写资源调查任务书（分类交互式提问），交接给执行 AI。
 - Claude：复核执行 AI 资源调查台账（纠正 OpenCode Go 档位、补 AI问答宝实情），落 `RESOURCES.md`。
 - Claude：按用户确认再修正——WorkBuddy（=WorkBodySolo）非 Pro 会员（Trae Work 才是），OpenCode Go 额度规则确认。
+- Claude：DeepSeek Harness 从源码装到 `D:\DeepSeek\deepseek-harness`（独立于 WorkBuddy），官方 key 填 `.env`，Web UI `:3080` 跑通 + headless 实测 API 通。
+- Claude：AGENTS.md 增补「读写时机判断」规则（新项目开始前读、单元交付后写），新增 `交接命令.md` 可复制模板。
 
 ## 2026-08-12
 - Claude：重构编排器画布为苹果浅色 + 加深色切换按钮。
