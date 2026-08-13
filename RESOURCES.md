@@ -115,10 +115,10 @@
 
 ## 类2 · Agent 工具（编程 / 自动化 Agent）— 14 个
 
-### WorkBuddy（本机主要执行 Agent）
+### WorkBuddy（本机主要执行 Agent，郭老师口中的 WorkBodySolo）
 - 平台：本机 ｜ 模型：内置多模型
-- 额度：**月 Pro 会员**（已确认）｜ 用途：教学课件、资源调查、多 Agent 体系执行位
-- 待确认：会员额度构成
+- 额度：付费账号（具体额度/积分机制待确认）
+- 用途：教学课件、资源调查、多 Agent 体系执行位
 
 ### Trae Work（trae work）
 - 平台：字节 Trae ｜ 模型：Claude/豆包 系
@@ -281,7 +281,7 @@
 ## 汇总统计
 
 - **资源总数：约 73 条**（类1:21 平台（其中 7 个已弃用）/ 类2:14 工具 / 类3:2 / 类4:10 网页版 / 类5:5 生图 / 类6:9 搜索 / 类7:2 自动化 / 类8:0 / 类9:3 中转 / 类10:7 集成）
-- **额度机制已明确：约 27 条**（DeepSeek ¥26.59、Groq 30RPM、ModelScope 250魔粒/日、Mistral $20/月、OpenRouter 14 free、SiliconFlow 负余额、**智谱无生效资源包（实测）**、**Kimi ¥15 赠送（实测）**、WorkBuddy/Trae Pro 会员、网页版/搜索/生图全免费等）
+- **额度机制已明确：约 27 条**（DeepSeek ¥26.59、Groq 30RPM、ModelScope 250魔粒/日、Mistral $20/月、OpenRouter 14 free、SiliconFlow 负余额、**智谱无生效资源包（实测）**、**Kimi ¥15 赠送（实测）**、Trae Work Pro 会员、网页版/搜索/生图全免费等）
 - **🚫 已弃用（用户 2026-08-13 拍板：不充 API、不买 Token 套餐）：7 个**——火山引擎、阿里百炼、百度千帆、腾讯 TokenHub、MiniMax、讯飞星火、阶跃星辰（原待确认项清零，不再维护）
 - **待确认：约 4 项**（AI问答宝详情、67673 有效性、ZSCC 额度机制、OpenRouter 余额数字（SPA 未渲染）；Gemini 网关细节并入 AI Hub）
 - **已退役/不可用：4 个**（GitHub Models、腾讯混元旧、零一万物、Together.ai 无免费）

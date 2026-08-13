@@ -8,6 +8,7 @@
 - Claude：创建公开仓库 `ai-hub-memory` 并推送骨架（https://github.com/201650545/ai-hub-memory）。
 - Claude：写资源调查任务书（分类交互式提问），交接给执行 AI。
 - Claude：复核执行 AI 资源调查台账（纠正 OpenCode Go 档位、补 AI问答宝实情），落 `RESOURCES.md`。
+- Claude：按用户确认再修正——WorkBuddy（=WorkBodySolo）非 Pro 会员（Trae Work 才是），OpenCode Go 额度规则确认。
 
 ## 2026-08-12
 - Claude：重构编排器画布为苹果浅色 + 加深色切换按钮。
