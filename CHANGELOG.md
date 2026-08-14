@@ -3,6 +3,8 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-08-14
+- [归档] DROP S-20260813-05 — 门户资源清单雏形收尾完成，滚出「已完成」8 条窗口，细节保留于本流水。
+- v4 Flash：落地**记忆生命周期**（膨胀方案 D-20260814-02 拍板后执行）——AGENTS.md 新增 §2.5「记忆生命周期/归档」（STATE 60 行/12KiB/完成 8 条硬限额 + ROTATE 例外 + CHANGELOG 200 条归档 + DECISIONS D-ID + STALE 时效）；check_memory.py 扩展 4 组检查（size guard/归档阈值/archive 锁/STALE）；新增 scripts/rotate_memory.py（changelog/decisions 显式归档，不自动 commit）；DECISIONS 加 D-ID 体系。待验证 + push。
 - [归档] DROP S-20260813-06 — DeepSeek Harness 落地完成，滚出「已完成」8 条窗口，细节保留于本流水。
 - [归档] DROP S-20260813-07 — 共享记忆读写协议落地完成，滚出窗口，细节保留于本流水。
 - [归档] DROP S-20260813-08 — 资源调查完成，滚出窗口，细节保留于 RESOURCES.md。

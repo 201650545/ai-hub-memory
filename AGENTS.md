@@ -74,6 +74,19 @@
 
 ---
 
+## 2.5 记忆生命周期 / 归档（GPT 实读版问诊 2026-08-14 拍板）
+
+- **STATE 是当前状态投影，不是历史库**：保持 ≤60 行、≤12 KiB；「已完成（最近）」最多保留 8 条。超出窗口的完成项必须先在 CHANGELOG 记录 `DROP`，再从 STATE 移除；**不单独建立 STATE archive**（旧快照天然在 Git 历史里）。
+- **append-only 的准确定义**：历史记录 immutable；正常写入只允许追加。**ROTATE 是唯一例外**——旧记录可从热文件移出，但必须在同一 commit 中原样进入 `archive/`，不得改写其内容。
+- **CHANGELOG 归档**：建议月切换或达到 200 条时归档到 `archive/changelog/YYYY/`；DECISIONS 低频归档（80 条为阈值），归档后仍有效的长期决策在热文件保留简短引用。
+- **archive/ 是冷历史，不是第二套记忆系统**：Agent 默认不读 archive（CHANGELOG 本就回溯才查）；已提交的 archive 文件禁止普通修改，修正只能追加 `CORRECTION` / `SUPERSEDES` 记录。
+- **时效度（STALE）**：STATE 的进行中/下一步/卡点允许脚本按 Git 最后修改时间报告 STALE（进行中 14 天 / 下一步 30 天 / 卡点 30 天）。STALE 只要求复核，**不得自动删除**；删除仍必须满足 DROP 规则（时间老 ≠ 事实失效）。
+- **DECISIONS 稳定 D-ID**：决策带 `[D-YYYYMMDD-NN]`，变更用 `SUPERSEDES D-xxx` 链，归档后仍可无歧义引用。
+
+> 归档执行：`python scripts/rotate_memory.py changelog|decisions`（显式触发，不自动 commit/push）；守卫：pre-commit hook 检查 size/STALE/archive 锁。
+
+---
+
 ## 3. 工具地图（已打通）
 - opencli 外部 CLI：`lark-cli`=飞书、`gh`=GitHub、`tg`、`wecom-cli`=企业微信、`wx`=微信、notion、obsidian、longbridge…
 - opencli browser 控 AI 引擎：doubao-app / chatgpt-app / codex / cursor 等 adapter。
