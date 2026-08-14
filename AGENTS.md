@@ -90,12 +90,9 @@
 ---
 
 ## 3. 工具地图（已打通）
-- **完整工具手册见 `global/TOOLS.md`**（gh / lark-cli / opencli / 网关 :3000 的能力、命令、登录态、坑）。
-- 三大关键工具：`gh`=GitHub、`lark-cli`=飞书、`opencli`=浏览器/多站适配器（另：`tg`、`wecom-cli`=企业微信、`wx`=微信、notion、obsidian、longbridge…）
-- opencli browser 控 AI 引擎：doubao-app / chatgpt-app / codex / cursor 等 adapter。
-- 统一网关 `:3000`（`D:\项目\services\search_gateway`，opencli 控 5 引擎：元宝/豆包/Kimi/千问/Meta AI）。
-- 编排器 `:8791`（课件生成）。
-- DeepSeek Harness `:3080`（`D:\DeepSeek\deepseek-harness`，源码构建，独立于 WorkBuddy）。
+- **外部工具能力与调用方式以 `global/TOOLS.md` 为唯一真源**（gh / lark-cli / opencli / 网关 :3000 的能力、命令、Preflight、坑、安全红线）。本段不重复工具能力清单，避免漂移。
+- 三大关键工具：`gh`=GitHub、`lark-cli`=飞书、`opencli`=浏览器/多站适配器。
+- 编排器 `:8791`（课件生成）；DeepSeek Harness `:3080`（`D:\DeepSeek\deepseek-harness`，源码构建）。
 
 ## 4. 工作模型
 按需调度：用户自然说一句话，Agent 当调度大脑，自己判断该打哪个已打通工具（飞书表→lark-cli、仓库→gh、搜索→网关多引擎、额度→台账），去查、去连、去汇总、去解决。**不搭定时提醒/汇报平台**。
