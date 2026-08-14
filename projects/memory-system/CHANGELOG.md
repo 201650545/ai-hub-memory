@@ -5,6 +5,7 @@
 ## 2026-08-14
 - [归档] DROP S-20260814-01 — 记忆系统 v2 升级完成，滚出「已完成」8 条窗口。
 - [归档] DROP S-20260814-09 — 记忆守卫落地完成，滚出「已完成」8 条窗口。
+- v4 Flash：安装并验证夸克网盘 Skill（官方 install.sh 确认已是最新 1.0.11，服务端地址与用户提供一致；无需覆盖，qk-list.cjs 未受影响）；授权已有效（config.json 有 currentUserId + accessToken）；端到端实测 qk-list 列根目录成功（17 文件夹 + 4 文件：6-奥数/7-课本/3-初中英语/教资 等）。备份 qk-list.cjs 于 D:\DeepSeek\qk-list.cjs.bak。
 - v4 Flash：新增工具能力「夸克网盘列目录（qk-list）」——操作文档（D:\项目\docs\夸克网盘列目录_qk-list_操作文档.md）已验证（skill 目录存在、qk-list.cjs node --check 通过、凭证路径与文档一致）；按 TOOLS.md HOW 定位写入 §6（用途/命令/自检/STOP/坑/指向原文档），凭证值零泄漏；AGENTS §3 保持单一真源。push ai-hub-memory `2a1dc23`。
 - v4 Flash：建 global/TOOLS.md 工具手册（三大工具 gh/lark-cli/opencli + 网关 :3000），GPT 优化后 V2（任务速查 + 首次使用检查 + 工具操作卡 + STOP 原则 + 安全红线扩展 + 三层分离 TOOLS=How/RESOURCES=What/projects=Why）；AGENTS §3 精简为只留 TOOLS.md 引用（消除 4/5 引擎漂移）。落档 ai-resource-hub `ee302d9`，push ai-hub-memory `2df5a12`。
 - v4 Flash：问诊 GPT「隔离记忆」并在同一对话完成 3 轮闭环——GPT 确认实读仓库（24 处引用 + MEMORY.json/RULES/memory.py 独有内容）；我方代表用户拍板 4 点（UNKNOWN 仅 settler 可全扫 / R1→R1' / lazy daily 不建定时 / 语义只给候选）；GPT 出 **v2.1 定稿**（20484 字）：16 条宪法 R1'~R16 + inbox/（pending/settled/receipts/META）+ memory.py 5 新命令（capture/status/settle-plan/resolve/settle）+ 读取过滤公式 + 验收测试 + 2 个 v2 遗留修复。落档 ai-resource-hub `ad40620`（gpt56_问诊回复_隔离记忆_v21定稿_2026-08-14.md）。**待落地 v2.1**。
