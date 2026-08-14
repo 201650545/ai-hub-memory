@@ -3,7 +3,8 @@
   "routing_policy": "fail_closed",
   "global_read": [
     "global/RULES.md",
-    "global/DECISIONS.md"
+    "global/DECISIONS.md",
+    "global/PROJECTS.md"
   ],
   "staging": {
     "root": "inbox",

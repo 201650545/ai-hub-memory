@@ -12,5 +12,8 @@
 ## 路由表
 见 MEMORY.json（aliases：教学/课程/教案、课件/PPT/slides、记忆系统/memory）。
 
+## GitHub 项目全景（5 仓库）
+详见 global/PROJECTS.md：ai-hub-memory（共享记忆）/ ai-resource-hub（资源库）/ ai-hub（操作台）/ feishu-data-hub（数据桥）/ english-teaching-production（教学业务线）。
+
 ## 全局规则
-所有 Agent 必须读 global/RULES.md（9 条宪法）+ global/DECISIONS.md。
+所有 Agent 必须读 global/RULES.md（16 条宪法）+ global/DECISIONS.md + global/PROJECTS.md（项目全景）。
