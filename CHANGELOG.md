@@ -3,6 +3,8 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-08-14
+- [TEST] DROP S-20260813-06 — 测试合法删除路径。
+
 - Claude：问诊 GPT（镜像站 vip-11 Thinking·Extended）「多 Agent 记忆覆盖/主分记忆」架构，回复落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆架构_2026-08-14.md`（结论：当前别上主+分，先用「四文件 + UPDATES 不可变事件保险层 + STATE 保留式更新」；未来几十 Agent 才演进 immutable events + 单写者 Memory Agent 投影）。已 push ai-resource-hub `347b951`。
 - Claude：写好「记忆备份/回退」问诊提示词（含给 v4 Flash 的执行说明 + 给 GPT 的 5 问题），落 ai-resource-hub `docs/ai-advice/问诊_记忆备份回退_提示词_2026-08-14.md`，**待 v4 Flash 执行问诊**（用户将切换 DeepSeek v4 Flash 去镜像站发问）。
 - v4 Flash：执行「记忆备份/回退」问诊——按用户指示核实 Thinking·Extended（effort=Extended 确认 checked）；首次 Thinking·Standard 仅得 570 字截断回复，切 Extended 重发得完整版（5324 字）；回复落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆备份回退_2026-08-14.md`（核心结论：不做额外备份服务，强化「可证明地重建」——UPDATES 不可变事件层 + STATE 顶部来源指纹检测语义覆盖 + 事件重放优先于 git checkout；凭证走 key rotation 而非删历史）。已 push ai-resource-hub `024467b`。
