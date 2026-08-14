@@ -22,3 +22,4 @@
 ## 下一步
 - **[S-20260814-14] 验证生命周期落地**：测试新 hook 检查（size 超限拦截/archive 锁/rotate 脚本）→ push ai-hub-memory。
 - 补 OpenCode Go / WorkBuddy 额度详情（待用户确认）。
+012345678901234567890123456789012345678901234
