@@ -3,9 +3,12 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-08-14
+- [归档] DROP S-20260814-03 — 记忆备份/回退问诊（未读版）完成，被实读版 S-20260814-02 取代，滚出窗口。
+- [归档] DROP S-20260814-14 — 落地多项目隔离被并入记忆系统 v2（S-20260814-17），滚出窗口。
 - [归档] DROP S-20260813-04 — 记忆覆盖/主分记忆问诊完成，滚出「已完成」8 条窗口，细节保留于本流水与落档。
 - [归档] DROP S-20260814-12 — 落地记忆生命周期完成（已并入 S-20260814-13 交付），滚出窗口。
 - [归档] DROP S-20260813-05 — 门户资源清单雏形收尾完成，滚出「已完成」8 条窗口，细节保留于本流水。
+- v4 Flash：多模型交叉问诊「记忆线/记忆路由」——AI 搜索网关（元宝）+ Claude Sonnet5（#2）+ GPT-5.6 Extended（#2）三方意见高度一致：**项目作用域隔离 + 分层记忆 + Routing-before-Retrieval + Fail-Closed**。GPT 定稿：新增 MEMORY.json（路由表）+ memory.py（唯一读写路由器）+ memory-router/SKILL.md（行为协议），现有三件套移入 projects/<project_id>/；核心公式「Memory = Global Kernel + Project Namespace + Layered Retrieval；Routing before Retrieval，Multi-read/Single-write，Fail Closed」。落档 ai-resource-hub（claude `dc087d6` + gpt `0c46589`）。**待按此方案升级记忆系统 v2**。
 - v4 Flash：问诊「多 Agent 多项目记忆隔离」——GPT 镜像站账号池当日故障（vip-11 实读空回复/vip-15/17 菜单打不开/vip-12 无回复），按手册 00 兜底转 **Claude Sonnet 5** 交叉校验，回复 5103 字落档 ai-resource-hub `docs/ai-advice/claude_sonnet5_问诊回复_多项目记忆隔离_2026-08-14.md`。核心结论：**STATE 用方案 B（索引页 STATE.md + 每项目页 STATE/<项目>.md，预算下沉每项目独立）**；DECISIONS/CHANGELOG 用方案 A（强制 [全局]/[项目:xx] 标签 + 脚本过滤，不物理拆分）；S-ID 改 `S-<项目码>-日期-NN`（存量无前缀不回填，归属记忆系统项目）；hook 改逐文件 glob 检测 + 索引页保护；新读取协议 = 索引页 + 本项目页 + decisions-for.sh。已 push ai-resource-hub `216eb76`。
 - v4 Flash：落地**记忆生命周期**（膨胀方案 D-20260814-02 拍板后执行）——AGENTS.md 新增 §2.5「记忆生命周期/归档」（STATE 60 行/12KiB/完成 8 条硬限额 + ROTATE 例外 + CHANGELOG 200 条归档 + DECISIONS D-ID + STALE 时效）；check_memory.py 扩展 4 组检查（size guard/归档阈值/archive 锁/STALE）；新增 scripts/rotate_memory.py（changelog/decisions 显式归档，不自动 commit）；DECISIONS 加 D-ID 体系。待验证 + push。
 - [归档] DROP S-20260813-06 — DeepSeek Harness 落地完成，滚出「已完成」8 条窗口，细节保留于本流水。
