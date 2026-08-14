@@ -46,7 +46,10 @@
 
 **写（三处，各司其职）：**
 1. `CHANGELOG.md` —— **追加**一条流水（谁 / 何时 / 做了什么）
-2. `STATE.md` —— **整体重写**（单写者，覆盖成最新快照）
+2. `STATE.md` —— **整体重写**（单写者，覆盖成最新快照），但必须**保留式更新**：
+   - **稳定 ID（防语义覆盖，核心）**：STATE 中每个仍然有效、不能无声丢失的状态项，带稳定 ID 如 `[S-20260814-01]`。正常更新可改文字，**ID 必须保留**。
+   - **删除必须声明**：某 ID 不再有效 → 先在 `CHANGELOG.md` 追加 `DROP S-xxx — 原因`，再从 STATE 删除该 ID。任何「ID 消失但无 DROP 记录」都是违规（pre-commit hook 会拦截）。
+   - **局部恢复**：误删某条 → 用 `git show <GOOD_COMMIT>:STATE.md | grep "S-xxx"` 找回，手工插回最新版，CHANGELOG 追加 `RESTORE S-xxx — 来源`。
 3. `DECISIONS.md` —— **追加**一条（仅当用户敲板决策，带日期）
 
 ---
@@ -54,9 +57,15 @@
 ## 2. 读写落地方式（Git 串行化，防冲突）
 
 ```
-读：  gh repo clone 201650545/ai-hub-memory  （或 git pull）
-写：  git pull 最新 → 改文件 → commit → push
+读：  gh repo clone 201650545/ai-hub-memory  （或 git pull --ff-only）
+写：  git pull --ff-only 最新 → 重读 STATE+DECISIONS → 改文件 → commit → push
 ```
+
+**防覆盖铁律（GPT 实读版问诊 2026-08-14 确认，最重要）：**
+- **禁止按 Agent 旧上下文整页重建 STATE**。pull 后必须重读磁盘上的最新 STATE.md，在其基础上做保留式修改；未知条目默认保留，只有「明确完成/失效/被新事实取代」才允许删除（删除必须 DROP 声明）。
+- **`git pull --ff-only`**：拉取阶段历史分叉就直接停下报错，不偷偷产生 merge（避免未注意的分叉合并）。
+- **禁止 `reset --hard` + `force push`**（改写共享历史）：整提交撤销用 `git revert`，单文件恢复用 `git restore --source=<commit> -- <file>`。
+- **push 失败（远端前进）**：禁止 force push；重新 `git pull --ff-only` → 重读最新记忆 → 重新合并本次变化 → 再 push。
 
 **并发规则（GPT 纠正，重要）：**
 - 「append-only 不免疫冲突」：两个 Agent 同时追加同一文件，Git 在 EOF 区域仍会 merge conflict。
@@ -83,4 +92,6 @@
 
 ## 6. 安全红线
 - 凭证值只进 `scheduler/credentials.json`（信任平面）；绝不进 chat / 报告 / commit / 飞书 / logs。
+- **机械阻止（GPT 实读版问诊 2026-08-14）**：`scheduler/credentials.json` 必须 `untracked + .gitignore`；commit 前由 pre-commit hook 扫描，任何疑似凭证（sk-/AIza/Bearer/app_token 等模式）进入 index 即拒绝。
+- **凭证误入历史（key rotation，不是删文件）**：Git 历史不可逆，删文件不等于安全；误提交 = 立即废弃该 key（rotation），再处理历史（git filter-repo + 所有 clone 重新同步）。
 - 不创建 / 删除 API key，不充值，不绑卡，不订阅。

@@ -1,0 +1,6 @@
+# 凭证/密钥：绝不入库（GPT 实读版 2026-08-14 机械阻止）
+scheduler/credentials.json
+credentials.json
+.env
+secrets/
+*.key
