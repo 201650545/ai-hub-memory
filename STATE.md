@@ -1,25 +1,23 @@
 # STATE.md — 当前状态（短期记忆）
 
 > 单写者 + 整体覆盖，**保留式更新**。每次更新整页重写，但稳定 ID（S-xxx）必须保留，删除必须先在 CHANGELOG 声明 DROP。
-> source_event_until: 2026-08-14-记忆守卫落地 | source_commit: ccd7221 | last_rebuild: 2026-08-14
+> source_event_until: 2026-08-14-膨胀问诊 | source_commit: bf8a4d9 | last_rebuild: 2026-08-14
 
 ## 进行中
-- **[S-20260814-01] 记忆机制改造（进行中）**：实读版 GPT 方案已拍板落地中——AGENTS.md 已升级、pre-commit 守卫已装；余下：验证 hook + 更新交接命令 + push。
+- **[S-20260814-01] 记忆生命周期治理（待用户拍板）**：膨胀问诊回复已落档，方案待拍板——append-only 重定义为 ROTATE 例外、STATE 60 行/12KiB/完成 8 条硬限额、CHANGELOG 200 条归档、DECISIONS 增 D-ID、STALE 时效警告。
 
 ## 已完成（最近）
-- **[S-20260814-02] 记忆备份/回退问诊（实读版）**（2026-08-14，v4 Flash）：单链接强制实读 AGENTS.md 后 GPT 回复 4537 字，**确认实读**（GitHub +1 / git-scm +1 / oaicite 引用 + AGENTS.md §0/§1/§2/§6 原文），落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆备份回退_实读版_2026-08-14.md`（替代未读版）。核心：① 备份 = Git+GitHub 已够，只加按需 git bundle ② 发现语义覆盖 = STATE 状态项加稳定 ID + 消失必 DROP + pre-commit hook ③ 回退 = 禁 reset --hard + force push，优先 git revert / restore --source ④ 局部恢复 = git show 找回 + RESTORE 事件 ⑤ 凭证 = credentials.json 机械阻止 + key rotation。push `e3478e2`。
-- **[S-20260814-03] 记忆备份/回退问诊（未读版）**（2026-08-14，v4 Flash）：GPT-5.6 Extended 回复 5324 字（未实读仓库，方向与实读版一致但缺细节），push `024467b`。
-- **[S-20260813-04] 记忆覆盖/主分记忆问诊**（2026-08-13）：结论：当前别上主+分记忆，先「四文件 + UPDATES 保险层 + STATE 保留式更新」。
-- **[S-20260813-06] DeepSeek Harness 落地**（2026-08-13）：源码装 D:\DeepSeek\deepseek-harness，Web UI :3080 跑通。
-- **[S-20260813-05] 门户资源清单雏形收尾**（2026-08-13）：ai-hub 数据桥复核通过，修复 3 处，全量回归 36 过/0 败/4 跳。push `2d49b5e`。
-
-- **[S-20260813-07] 共享记忆读写协议落地**（2026-08-13）：AGENTS.md 增补读写时机判断；新增 交接命令.md。
-- **[S-20260813-08] 资源调查完成**：10 类约 73 条资源，落 RESOURCES.md。
+- **[S-20260814-11] 记忆膨胀/精简问诊（实读版）**（2026-08-14，v4 Flash）：GPT-5.6 Extended 回复 8587 字**确认实读**（核对当前 STATE 22 行/已完成 7 条），落档 `docs/ai-advice/gpt56_问诊回复_记忆膨胀精简_2026-08-14.md`，push `bf8a4d9`。
+- **[S-20260814-02] 记忆备份/回退问诊（实读版）**（2026-08-14，v4 Flash）：确认实读，核心：备份=Git+GitHub 已够+按需 bundle；语义覆盖=稳定 ID+DROP+hook；回退=禁 force push 优先 revert/restore；凭证=key rotation。push `e3478e2`。
+- **[S-20260814-09] 记忆守卫落地（完成）**（2026-08-14）：AGENTS 协议升级 + pre-commit hook（凭证扫描+S-ID 消失检测，三项测试过）+ STATE 稳定 ID + .gitignore + 交接命令同步。push `ad731a1`/`6e6228a`。
+- **[S-20260814-10] 交接命令更新（完成）**（2026-08-14）：同步新写入协议（ff-only/保留式更新/稳定 ID/禁 force push）。
+- **[S-20260814-03] 记忆备份/回退问诊（未读版）**（2026-08-14）：push `024467b`。
+- **[S-20260813-04] 记忆覆盖/主分记忆问诊**（2026-08-13）：结论：当前别上主+分，先四文件+保留式更新。
+- **[S-20260813-05] 门户资源清单雏形收尾**（2026-08-13）：ai-hub 数据桥复核，修复 3 处，回归 36 过/0 败/4 跳。push `2d49b5e`。
 
 ## 卡点
 - 无。
 
 ## 下一步
-- **[S-20260814-09] 完成记忆守卫落地**：验证 pre-commit hook 拦截生效（故意违规测试）→ 更新交接命令.md → push ai-hub-memory。
-- **[S-20260814-10] 更新交接命令.md**：同步新的写入协议（ff-only/保留式更新/稳定 ID/禁 force push）。
+- **[S-20260814-12] 落地记忆生命周期**：用户拍板膨胀方案后——AGENTS 增「记忆生命周期/归档」段、check_memory.py 加 size guard + STALE + archive 锁、新增 scripts/rotate_memory.py、DECISIONS 加 D-ID。
 - 补 OpenCode Go / WorkBuddy 额度详情（待用户确认）。

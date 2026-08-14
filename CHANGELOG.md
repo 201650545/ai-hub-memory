@@ -3,8 +3,12 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-08-14
+- [归档] DROP S-20260813-06 — DeepSeek Harness 落地完成，滚出「已完成」8 条窗口，细节保留于本流水。
+- [归档] DROP S-20260813-07 — 共享记忆读写协议落地完成，滚出窗口，细节保留于本流水。
+- [归档] DROP S-20260813-08 — 资源调查完成，滚出窗口，细节保留于 RESOURCES.md。
 
 - v4 Flash：落地**记忆守卫**（实读版 GPT 方案拍板后执行）——AGENTS.md 写入协议升级（ff-only/保留式更新/禁 force push/S-ID+DROP 规则/凭证机械阻止/key rotation）；新增 pre-commit hook（scripts/check_memory.py：凭证扫描 + STATE S-ID 消失检测，三项测试全过——无 DROP 删 ID 拦截 ✓ / 有 DROP 删除通过 ✓ / 凭证进入暂存拦截 ✓）；STATE.md 全部状态项加稳定 S-ID + 来源指纹；.gitignore 屏蔽凭证；交接命令.md 同步新协议。已 push ai-hub-memory `ad731a1`。
+- v4 Flash：问诊 GPT「记忆膨胀/精简/生命周期」（vip-12 Extended，强制实读，回复 8587 字确认实读——核对当前 STATE 22 行/已完成 7 条），落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆膨胀精简_2026-08-14.md`。核心：① append-only 重定义为「记录 immutable，ROTATE 是唯一例外」（同 commit 原样进 archive）② STATE 硬限额 60 行/12KiB/最近完成 8 条，超窗口 DROP 进 CHANGELOG，不建 STATE archive ③ CHANGELOG 200 条触发归档到 archive/changelog/ ④ DECISIONS 80 条低频归档 + 增 D-ID + SUPERSEDES ⑤ 时效 = S-ID 用 Git 最后修改时间报 STALE（只 warning 不删）。push ai-resource-hub `bf8a4d9`。
 - Claude：问诊 GPT（镜像站 vip-11 Thinking·Extended）「多 Agent 记忆覆盖/主分记忆」架构，回复落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆架构_2026-08-14.md`（结论：当前别上主+分，先用「四文件 + UPDATES 不可变事件保险层 + STATE 保留式更新」；未来几十 Agent 才演进 immutable events + 单写者 Memory Agent 投影）。已 push ai-resource-hub `347b951`。
 - Claude：写好「记忆备份/回退」问诊提示词（含给 v4 Flash 的执行说明 + 给 GPT 的 5 问题），落 ai-resource-hub `docs/ai-advice/问诊_记忆备份回退_提示词_2026-08-14.md`，**待 v4 Flash 执行问诊**（用户将切换 DeepSeek v4 Flash 去镜像站发问）。
 - v4 Flash：执行「记忆备份/回退」问诊——按用户指示核实 Thinking·Extended（effort=Extended 确认 checked）；首次 Thinking·Standard 仅得 570 字截断回复，切 Extended 重发得完整版（5324 字）；回复落档 ai-resource-hub `docs/ai-advice/gpt56_问诊回复_记忆备份回退_2026-08-14.md`（核心结论：不做额外备份服务，强化「可证明地重建」——UPDATES 不可变事件层 + STATE 顶部来源指纹检测语义覆盖 + 事件重放优先于 git checkout；凭证走 key rotation 而非删历史）。已 push ai-resource-hub `024467b`。
