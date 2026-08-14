@@ -11,6 +11,7 @@
 | 飞书表/文档/Bot | lark-cli | 认证状态检查 | §3 |
 | 操作已登录网页/AI 引擎 | opencli | opencli doctor | §4 |
 | 多引擎 AI 搜索/LLM 聚合 | 网关 :3000 | health check | §5 |
+| 夸克网盘列目录 | qk-list.cjs | node --check + 凭证存在 | §6 |
 
 ## 1. 首次使用检查（弱模型也照做）
 1. 确认任务该用哪个工具（看 §0 速查）。
@@ -80,7 +81,26 @@
 - STOP：health 超时/DOWN → 确认服务是否启动，不假装可用。
 - 状态：runtime volatile；服务定位见环境 bootstrap（不用绝对本机路径）。
 
-## 6. 通用安全红线
+## 6. 夸克网盘列目录（qk-list）
+- 用途：列出夸克网盘根目录内容（官方 skill 只有语义搜索，无法列目录）。**根目录 100% 可靠；子目录导航不可用**（fid 会话级临时标识）。
+- 前置：官方 skill 已装并授权（凭证 OAuth 后自动写入 skill 的 config.json，**只读不打印**）。
+- 已交付命令（无需实现）：
+  ```bash
+  node "<skill>/scripts/qk-list.cjs"           # 列出根目录
+  node "<skill>/scripts/qk-list.cjs" --all     # 翻页取全部
+  node "<skill>/scripts/qk-list.cjs" --size 200 # 自定义每页
+  ```
+  - stdout 输出 NDJSON（type:"result" 含 dirs/files/dir_count/file_count）
+  - stderr 打印 [DIR]/[FILE] 人类可读列表
+- 自检：`node --check qk-list.cjs` 通过；根目录能列出目标文件夹（如「6-奥数」「7-课本」）。
+- STOP：认证失败/凭证缺失 → 停止并请求人工重新授权；不自行猜测 token。
+- 坑（[2026-08-14]）：
+  - 签名头 x-pan-token = sha256("POST&/open/v1/file/list&<毫秒tm>&signKey")；client-id 必须写死 third_party_agent；
+  - req_id 必须 UUIDv4；空 keyword 搜索会 400（search 无法枚举目录，必须走 file/list）；
+  - 修改 minified 文件别用 bash 双引号传 \n（用脚本文件打补丁 + node --check 验证）。
+- 详细逆向方法论/完整代码/凭证结构：见 `D:\项目\docs\夸克网盘列目录_qk-list_操作文档.md`（HOW 详解，本手册只放速用）。
+
+## 7. 通用安全红线
 TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间接恢复认证的材料**。禁止：
 - password / API key / access·refresh·session token / cookie / Authorization header
 - OAuth code / 二维码认证数据 / private key / localStorage 认证值
@@ -90,7 +110,7 @@ TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间
 - 日志、示例输出、截图中的秘密同样属于秘密。
 > 高风险写操作（删除/覆盖/发消息/push/改外部表）→ 先按 global/RULES 确认，不自行执行。
 
-## 7. 更新规则
+## 8. 更新规则
 - 只有**持久变化**才更新 TOOLS：命令变化 / 认证方式变化 / 新增或弃用工具 / 稳定 workaround 改变 / 服务永久迁移。
 - 瞬时状态（session logout/Chrome 崩/账号池漂移/gateway 没启动）→ **现场检查解决，不 commit**。
 - 工具达 6-8 个或 TOOLS 超 200-300 行 → 拆分 global/tools/<name>.md，TOOLS.md 只做入口+速查+安全。
