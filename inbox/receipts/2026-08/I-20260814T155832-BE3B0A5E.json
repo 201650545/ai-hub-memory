@@ -1,0 +1,11 @@
+{
+  "schema": "settlement-receipt-v1",
+  "id": "I-20260814T155832-BE3B0A5E",
+  "settled_at": "2026-08-14T15:58:37.821430+00:00",
+  "disposition": "promoted",
+  "capture_scope": "session:memory-v2",
+  "original_project_hint": "memory-system",
+  "final_project": "memory-system",
+  "target_id": "S-20260814-21",
+  "reason": ""
+}

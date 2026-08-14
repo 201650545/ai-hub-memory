@@ -1,30 +1,43 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ai-hub-memory v2 - memory router (唯一读写入口)
+"""ai-hub-memory v2.1 - memory router (唯一读写入口 + 隔离记忆 staging)
 
-Usage:
-  python scripts/memory.py route --project <id> --kind state|decision
-  python scripts/memory.py read --project <id> [--file state|decisions|changelog]
-  python scripts/memory.py search --project <id> --query <text>
-  python scripts/memory.py write --project <id> --kind state|decision --sid <S-ID> --content <text>
-  python scripts/memory.py validate
+Formal memory:
+  route / read / search / write / validate / register
+Staging (v2.1):
+  capture / status / settle-plan / resolve / settle
 
-Design (v2, GPT/Claude/网关三方定稿):
-  - Routing before Retrieval; Multi-read/Single-write; Fail-Closed.
-  - Agent 不指定文件路径，路径由本脚本决定。
-  - write 自动 append CHANGELOG（R9）。
+Design (v2.1, GPT 3-round finalized 2026-08-14):
+  Quarantined Ingress + Project-scoped Consolidation
+  Routing before Retrieval; Multi-read/Single-write; Fail Closed; R1'-R16
 """
 
 import argparse
 import json
+import os
 import re
+import secrets
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "MEMORY.json"
+INBOX = ROOT / "inbox"
+INBOX_META = INBOX / "META.json"
+
+SECRET_PATTERNS = [
+    (r"sk-[A-Za-z0-9]{16,}", "sk- key"),
+    (r"AIza[A-Za-z0-9_-]{20,}", "Google API key"),
+    (r"Bearer [A-Za-z0-9._-]{20,}", "Bearer token"),
+    (r"app_token[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9]{15,}", "app_token"),
+    (r"app_secret[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9]{15,}", "app_secret"),
+]
+
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True)
 
 
 def load_manifest():
@@ -37,11 +50,149 @@ def resolve_project(manifest, project_id):
     proj = manifest["projects"].get(project_id)
     if proj:
         return project_id, proj["path"]
-    # alias match
     for pid, info in manifest["projects"].items():
         if project_id in info.get("aliases", []):
             return pid, info["path"]
     sys.exit("[memory] ERROR: unknown project_id=" + str(project_id) + " (fail closed)")
+
+
+def secret_hits(text):
+    hits = []
+    for pat, desc in SECRET_PATTERNS:
+        for m in re.finditer(pat, text, re.IGNORECASE):
+            hits.append(desc + " -> " + m.group(0)[:16])
+    return hits
+
+
+def load_inbox_meta():
+    if not INBOX_META.exists():
+        return {"schema": "inbox-meta-v1", "last_settle_date": None, "last_settle_at": None}
+    try:
+        return json.loads(INBOX_META.read_text(encoding="utf-8"))
+    except Exception:
+        return {"schema": "inbox-meta-v1", "last_settle_date": None, "last_settle_at": None}
+
+
+def save_inbox_meta(meta):
+    INBOX_META.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def make_inbox_id():
+    now = datetime.now(timezone.utc)
+    ts = now.strftime("%Y%m%dT%H%M%S")
+    return "I-" + ts + "-" + secrets.token_hex(4).upper()
+
+
+def inbox_item_path(item_id):
+    """Find item file under inbox/pending by id (search all date dirs)."""
+    pdir = INBOX / "pending"
+    if not pdir.is_dir():
+        return None
+    for d in pdir.iterdir():
+        if d.is_dir():
+            f = d / (item_id + ".md")
+            if f.exists():
+                return f
+    return None
+
+
+def parse_inbox_item(path):
+    text = path.read_text(encoding="utf-8")
+    meta = {}
+    m = re.search(r"^---\n(.*?)\n---", text, re.DOTALL)
+    if m:
+        for line in m.group(1).splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                meta[k.strip()] = v.strip()
+    body = text[m.end():].strip() if m else text.strip()
+    return meta, body
+
+
+def visible_staging(project_id, capture_scope=None):
+    """R11: return list of (path, meta, body) visible to a project agent."""
+    pdir = INBOX / "pending"
+    if not pdir.is_dir():
+        return []
+    out = []
+    for d in sorted(pdir.iterdir()):
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.md")):
+            meta, body = parse_inbox_item(f)
+            hint = meta.get("project_hint", "UNKNOWN")
+            scope = meta.get("capture_scope", "")
+            if hint == project_id:
+                out.append((f, meta, body))
+            elif hint == "UNKNOWN" and capture_scope and scope == capture_scope:
+                out.append((f, meta, body))
+    return out
+
+
+def write_inbox_item(content, project_hint, routing_basis, kind_hint, capture_scope):
+    # R16: secret preflight BEFORE writing file
+    hits = secret_hits(content)
+    if hits:
+        sys.exit("[memory] ERROR: credential-like content rejected before capture: " + "; ".join(hits))
+    item_id = make_inbox_id()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    ddir = INBOX / "pending" / today
+    ddir.mkdir(parents=True, exist_ok=True)
+    f = ddir / (item_id + ".md")
+    header = "---\n"
+    header += "schema: inbox-v1\n"
+    header += "id: " + item_id + "\n"
+    header += "captured_at: " + datetime.now(timezone.utc).isoformat() + "\n"
+    header += "capture_scope: " + capture_scope + "\n"
+    header += "project_hint: " + project_hint + "\n"
+    header += "routing_basis: " + routing_basis + "\n"
+    header += "kind_hint: " + kind_hint + "\n"
+    header += "---\n\n"
+    f.write_text(header + content.strip() + "\n", encoding="utf-8")
+    print("[memory] captured " + item_id + " project_hint=" + project_hint)
+    return item_id
+
+
+def write_memory_entry(pid, kind, sid, content):
+    """Shared formal write logic used by cmd_write and cmd_settle (R9)."""
+    manifest = load_manifest()
+    _, path = resolve_project(manifest, pid)
+    kinds = {"state": "STATE.md", "decision": "DECISIONS.md"}
+    target = ROOT / path / kinds[kind]
+    if not target.exists():
+        sys.exit("[memory] ERROR: " + str(target) + " not found")
+    today = datetime.now().strftime("%Y-%m-%d")
+    if kind == "state":
+        entry = "- **[" + sid + "]** " + content + "（" + today + "）"
+        text = target.read_text(encoding="utf-8")
+        text = text.replace("## 已完成（最近）", "## 已完成（最近）\n" + entry, 1)
+        target.write_text(text, encoding="utf-8")
+    else:
+        entry = "- [" + sid + "] " + content + "（" + today + "）"
+        text = target.read_text(encoding="utf-8")
+        text += "\n" + entry + "\n"
+        target.write_text(text, encoding="utf-8")
+    cl = ROOT / path / "CHANGELOG.md"
+    if cl.exists():
+        cl_text = cl.read_text(encoding="utf-8")
+        cl_text += "- " + sid + " " + content[:60] + "（" + today + "，脚本自动记录）\n"
+        cl.write_text(cl_text, encoding="utf-8")
+    return sid
+
+
+def next_memory_id(pid, kind):
+    manifest = load_manifest()
+    _, path = resolve_project(manifest, pid)
+    kinds = {"state": "STATE.md", "decision": "DECISIONS.md"}
+    f = ROOT / path / kinds[kind]
+    text = f.read_text(encoding="utf-8") if f.exists() else ""
+    today = datetime.now().strftime("%Y%m%d")
+    pat = re.compile(r"\[([A-Z]+-)" + today + r"-(\d{2})\]")
+    mx = 0
+    for m in pat.finditer(text):
+        mx = max(mx, int(m.group(2)))
+    prefix = "S" if kind == "state" else "D"
+    return prefix + "-" + today + "-" + str(mx + 1).zfill(2)
 
 
 def cmd_route(args):
@@ -56,9 +207,19 @@ def cmd_route(args):
 def cmd_read(args):
     manifest = load_manifest()
     pid, path = resolve_project(manifest, args.project)
+    if args.file == "staging":
+        # v2.1 R11: filtered staging read
+        items = visible_staging(pid, args.capture_scope)
+        if not items:
+            print("[memory] no visible staging for " + pid + " scope=" + str(args.capture_scope))
+            return
+        for f, meta, body in items:
+            print("## " + meta.get("id", "?") + " hint=" + meta.get("project_hint", "?") + " scope=" + meta.get("capture_scope", "?"))
+            print(body[:200]); print()
+        return
     kinds = {"state": "STATE.md", "decision": "DECISIONS.md", "changelog": "CHANGELOG.md"}
     if args.file not in kinds:
-        sys.exit("[memory] ERROR: --file must be state|decision|changelog")
+        sys.exit("[memory] ERROR: --file must be state|decision|changelog|staging")
     f = ROOT / path / kinds[args.file]
     if not f.exists():
         sys.exit("[memory] ERROR: " + str(f) + " not found")
@@ -68,7 +229,6 @@ def cmd_read(args):
 def cmd_search(args):
     manifest = load_manifest()
     pid, path = resolve_project(manifest, args.project)
-    # 只在本项目目录内搜（物理隔离）
     proj_dir = ROOT / path
     if not proj_dir.is_dir():
         sys.exit("[memory] ERROR: project dir missing")
@@ -87,63 +247,192 @@ def cmd_search(args):
 def cmd_write(args):
     manifest = load_manifest()
     pid, path = resolve_project(manifest, args.project)
-    kinds = {"state": "STATE.md", "decision": "DECISIONS.md", "changelog": "CHANGELOG.md"}
     if args.kind not in ("state", "decision"):
         sys.exit("[memory] ERROR: write kind must be state|decision")
-    target = ROOT / path / kinds[args.kind]
-    if not target.exists():
-        sys.exit("[memory] ERROR: " + str(target) + " not found")
-    today = datetime.now().strftime("%Y-%m-%d")
-    if args.kind == "state":
-        if not re.match(r"^S-", args.sid):
-            sys.exit("[memory] ERROR: S-ID must start with S-")
-        entry = "- **[" + args.sid + "]** " + args.content + "（" + today + "）"
-        text = target.read_text(encoding="utf-8")
-        # 追加到 已完成（最近）区
-        text = text.replace("## 已完成（最近）", "## 已完成（最近）\n" + entry, 1)
-        target.write_text(text, encoding="utf-8")
-    else:
-        if not re.match(r"^D-", args.sid):
-            sys.exit("[memory] ERROR: D-ID must start with D-")
-        entry = "- [" + args.sid + "] " + args.content + "（" + today + "）"
-        text = target.read_text(encoding="utf-8")
-        text += "\n" + entry + "\n"
-        target.write_text(text, encoding="utf-8")
-    # R9: 自动 append CHANGELOG
-    cl = ROOT / path / "CHANGELOG.md"
-    if cl.exists():
-        cl_text = cl.read_text(encoding="utf-8")
-        cl_text += "- " + args.sid + " " + args.content[:60] + "（" + today + "，脚本自动记录）\n"
-        cl.write_text(cl_text, encoding="utf-8")
-    print("[memory] wrote " + args.sid + " to " + pid + "/" + kinds[args.kind])
+    if not re.match(r"^[SD]-", args.sid):
+        sys.exit("[memory] ERROR: S/D-ID must start with S- or D-")
+    write_memory_entry(pid, args.kind, args.sid, args.content)
+    print("[memory] wrote " + args.sid + " to " + pid)
 
 
-def cmd_register(args):
-    """一键新建项目：更新 MEMORY.json + 建目录 + 骨架文件 + 更新根索引。"""
+def cmd_capture(args):
     manifest = load_manifest()
-    pid = args.id
-    if not re.match(r'^[a-z0-9-]+$', pid):
-        sys.exit('[memory] ERROR: project id must be lowercase alnum+dash, e.g. english-teaching')
-    if pid in manifest['projects']:
-        sys.exit('[memory] ERROR: project ' + pid + ' already exists')
-    aliases = [a.strip() for a in (args.aliases or '').split(',') if a.strip()]
-    manifest['projects'][pid] = {'aliases': aliases, 'path': 'projects/' + pid, 'imports': []}
-    MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    pdir = ROOT / 'projects' / pid
-    (pdir / 'archive').mkdir(parents=True, exist_ok=True)
-    (pdir / 'STATE.md').write_text('# STATE.md — ' + (args.name or pid) + ' 项目状态\n\n> 当前状态（保留式更新，S-ID 稳定标识）。\n\n## 进行中\n- 无。\n\n## 已完成（最近）\n- 无。\n\n## 卡点\n- 无。\n\n## 下一步\n- 无。\n', encoding='utf-8')
-    (pdir / 'DECISIONS.md').write_text('# DECISIONS.md — ' + (args.name or pid) + ' 项目决策（append-only）\n\n> 只追加。\n', encoding='utf-8')
-    (pdir / 'CHANGELOG.md').write_text('# CHANGELOG.md — ' + (args.name or pid) + ' 项目流水（append-only）\n\n> 只追加。\n', encoding='utf-8')
-    # 更新根索引 STATE.md
-    idx = ROOT / 'STATE.md'
-    if idx.exists():
-        it = idx.read_text(encoding='utf-8')
-        row = '| ' + pid + '（' + (args.name or pid) + '） | projects/' + pid + ' | 进行中：无 |'
-        it = it.replace('| teaching（教学）', row + '\n| teaching（教学）', 1)
-        idx.write_text(it, encoding='utf-8')
-    print('[memory] registered project: ' + pid + ' (path projects/' + pid + ')')
-    print('[memory] next: git add -A && git commit -m "memory: register project ' + pid + '" && git push')
-    return 0
+    if args.project_hint and args.project_hint != "UNKNOWN":
+        # canonicalize via resolve_project (aliases work, unknown fails)
+        try:
+            pid, _ = resolve_project(manifest, args.project_hint)
+        except SystemExit:
+            sys.exit("[memory] ERROR: --project-hint must be registered project or UNKNOWN")
+        hint = pid
+    else:
+        hint = "UNKNOWN"
+    routing_basis = args.routing_basis or ("none" if hint == "UNKNOWN" else "explicit")
+    write_inbox_item(args.content, hint, routing_basis, args.kind_hint or "auto", args.capture_scope)
+
+
+def cmd_status(args):
+    pdir = INBOX / "pending"
+    items = []
+    if pdir.is_dir():
+        for d in pdir.iterdir():
+            if d.is_dir():
+                for f in d.glob("*.md"):
+                    meta, body = parse_inbox_item(f)
+                    items.append((f, meta, body))
+    if args.settler:
+        unknown = sum(1 for _, m, _ in items if m.get("project_hint") == "UNKNOWN")
+        by_proj = {}
+        for _, m, _ in items:
+            h = m.get("project_hint", "UNKNOWN")
+            by_proj[h] = by_proj.get(h, 0) + 1
+        print("[memory] pending=" + str(len(items)))
+        print("[memory] unknown=" + str(unknown))
+        for k, v in sorted(by_proj.items()):
+            print("[memory] " + k + "=" + str(v))
+        meta = load_inbox_meta()
+        print("[memory] last_settle_date=" + str(meta.get("last_settle_date")))
+        due = len(items) >= (load_manifest().get("staging", {}).get("pending_threshold", 20)) or unknown >= 5
+        print("[memory] settle_due=" + ("yes" if due else "no"))
+        return
+    if not args.project:
+        sys.exit("[memory] ERROR: status needs --settler or --project")
+    manifest = load_manifest()
+    pid, _ = resolve_project(manifest, args.project)
+    visible = visible_staging(pid, args.capture_scope)
+    mine = sum(1 for _, m, _ in visible if m.get("project_hint") == pid)
+    same_unknown = sum(1 for _, m, _ in visible if m.get("project_hint") == "UNKNOWN")
+    print("[memory] project=" + pid)
+    print("[memory] staging_project=" + str(mine))
+    print("[memory] staging_same_origin_unknown=" + str(same_unknown))
+
+
+def cmd_settle_plan(args):
+    pdir = INBOX / "pending"
+    if not pdir.is_dir():
+        print("[memory] no pending"); return
+    all_items = []
+    for d in sorted(pdir.iterdir()):
+        if d.is_dir():
+            for f in sorted(d.glob("*.md")):
+                meta, body = parse_inbox_item(f)
+                all_items.append((f, meta, body))
+    if args.project:
+        manifest = load_manifest()
+        pid, _ = resolve_project(manifest, args.project)
+        all_items = [(f, m, b) for f, m, b in all_items if m.get("project_hint") == pid]
+    for f, meta, body in all_items:
+        hint = meta.get("project_hint", "UNKNOWN")
+        kind = meta.get("kind_hint", "auto")
+        cand = meta.get("candidate_project", "")
+        if hint != "UNKNOWN" and kind in ("state", "decision"):
+            status = "READY"
+        elif hint != "UNKNOWN" and kind == "auto":
+            status = "NEEDS_KIND"
+        elif hint == "UNKNOWN" and cand:
+            status = "CANDIDATE"
+        else:
+            status = "UNRESOLVED"
+        print(status + " " + meta.get("id", "?") + " hint=" + hint + " kind=" + kind + " body=" + body[:60])
+
+
+def cmd_resolve(args):
+    f = inbox_item_path(args.id)
+    if not f:
+        sys.exit("[memory] ERROR: item " + args.id + " not found in pending")
+    meta, body = parse_inbox_item(f)
+    if args.discard:
+        _finalize_item(f, meta, body, "discarded", args.reason or "", None, None)
+        print("[memory] discarded " + args.id); return
+    if args.covered_by:
+        _finalize_item(f, meta, body, "covered", args.reason or "", args.project, args.covered_by)
+        print("[memory] covered " + args.id + " by " + args.covered_by); return
+    if args.project and args.basis:
+        manifest = load_manifest()
+        pid, _ = resolve_project(manifest, args.project)
+        meta["project_hint"] = pid
+        meta["routing_basis"] = args.basis
+        if args.kind:
+            meta["kind_hint"] = args.kind
+        _rewrite_item(f, meta, body)
+        print("[memory] resolved " + args.id + " -> " + pid + " basis=" + args.basis); return
+    if args.candidate_project:
+        meta["candidate_project"] = args.candidate_project
+        meta["candidate_reason"] = args.reason or ""
+        _rewrite_item(f, meta, body)
+        print("[memory] candidate recorded (still UNKNOWN): " + args.id); return
+    if args.kind:
+        meta["kind_hint"] = args.kind
+        _rewrite_item(f, meta, body)
+        print("[memory] kind set: " + args.id + " -> " + args.kind); return
+    sys.exit("[memory] ERROR: resolve needs one of --project/--discard/--covered-by/--candidate-project/--kind")
+
+
+def _rewrite_item(f, meta, body):
+    header = "---\n"
+    for k, v in meta.items():
+        header += k + ": " + str(v) + "\n"
+    header += "---\n\n"
+    f.write_text(header + body + "\n", encoding="utf-8")
+
+
+def _finalize_item(f, meta, body, disposition, reason, target_project, target_id):
+    # move pending -> settled + write receipt
+    month = datetime.now().strftime("%Y-%m")
+    sdir = INBOX / "settled" / month
+    rdir = INBOX / "receipts" / month
+    sdir.mkdir(parents=True, exist_ok=True); rdir.mkdir(parents=True, exist_ok=True)
+    sid = meta.get("id", f.stem)
+    shutil_move(f, sdir / f.name)
+    receipt = {
+        "schema": "settlement-receipt-v1",
+        "id": sid,
+        "settled_at": datetime.now(timezone.utc).isoformat(),
+        "disposition": disposition,
+        "capture_scope": meta.get("capture_scope", ""),
+        "original_project_hint": meta.get("project_hint", ""),
+        "final_project": target_project,
+        "target_id": target_id,
+        "reason": reason,
+    }
+    (rdir / (sid + ".json")).write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def shutil_move(src, dst):
+    src.replace(dst)
+
+
+def cmd_settle(args):
+    # preflight all items first, then apply (atomic-ish)
+    manifest = load_manifest()
+    pid, _ = resolve_project(manifest, args.project)
+    pdir = INBOX / "pending"
+    targets = []
+    if pdir.is_dir():
+        for d in pdir.iterdir():
+            if d.is_dir():
+                for f in d.glob("*.md"):
+                    meta, body = parse_inbox_item(f)
+                    if args.id and meta.get("id") not in args.id:
+                        continue
+                    hint = meta.get("project_hint", "UNKNOWN")
+                    kind = meta.get("kind_hint", "auto")
+                    if hint != pid:
+                        continue
+                    if kind not in ("state", "decision"):
+                        continue
+                    targets.append((f, meta, body))
+    if not targets:
+        print("[memory] nothing to settle for " + pid); return
+    if args.dry_run:
+        for f, meta, body in targets:
+            print("[memory] would settle " + meta.get("id") + " -> " + pid + "/" + meta.get("kind_hint"));
+        return
+    for f, meta, body in targets:
+        sid = next_memory_id(pid, meta["kind_hint"])
+        write_memory_entry(pid, meta["kind_hint"], sid, body)
+        _finalize_item(f, meta, body, "promoted", "", pid, sid)
+        print("[memory] settled " + meta.get("id") + " -> " + sid + " (" + pid + ")")
+
 
 def cmd_validate(args):
     manifest = load_manifest()
@@ -155,30 +444,66 @@ def cmd_validate(args):
         for name in ("STATE.md", "DECISIONS.md", "CHANGELOG.md"):
             if not (pdir / name).exists():
                 problems.append(pid + ": " + name + " missing")
+    if not (INBOX / "pending").is_dir() or not (INBOX / "settled").is_dir():
+        problems.append("inbox structure missing")
     if problems:
         for p in problems:
             print("[memory] FAIL " + p)
         return 1
-    print("[memory] OK structure valid")
+    print("[memory] OK structure valid (v2.1)")
     return 0
 
 
+def cmd_register(args):
+    manifest = load_manifest()
+    pid = args.id
+    if not re.match(r"^[a-z0-9-]+$", pid):
+        sys.exit("[memory] ERROR: project id must be lowercase alnum+dash")
+    if pid in manifest["projects"]:
+        sys.exit("[memory] ERROR: project " + pid + " already exists")
+    aliases = [a.strip() for a in (args.aliases or "").split(",") if a.strip()]
+    manifest["projects"][pid] = {"aliases": aliases, "path": "projects/" + pid, "imports": []}
+    MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    pdir = ROOT / "projects" / pid
+    (pdir / "archive").mkdir(parents=True, exist_ok=True)
+    (pdir / "STATE.md").write_text("# STATE.md — " + (args.name or pid) + " 项目状态\n\n## 进行中\n- 无。\n\n## 已完成（最近）\n- 无。\n\n## 卡点\n- 无。\n\n## 下一步\n- 无。\n", encoding="utf-8")
+    (pdir / "DECISIONS.md").write_text("# DECISIONS.md — " + (args.name or pid) + " 项目决策（append-only）\n", encoding="utf-8")
+    (pdir / "CHANGELOG.md").write_text("# CHANGELOG.md — " + (args.name or pid) + " 项目流水（append-only）\n", encoding="utf-8")
+    idx = ROOT / "STATE.md"
+    if idx.exists():
+        it = idx.read_text(encoding="utf-8")
+        row = "| " + pid + "（" + (args.name or pid) + "） | projects/" + pid + " | 进行中：无 |"
+        it = it.replace("| teaching（教学）", row + "\n| teaching（教学）", 1)
+        idx.write_text(it, encoding="utf-8")
+    print("[memory] registered project: " + pid)
+
+
 def main():
-    p = argparse.ArgumentParser(description="ai-hub-memory v2 router")
+    p = argparse.ArgumentParser(description="ai-hub-memory v2.1 router")
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("route"); r.add_argument("--project"); r.add_argument("--kind")
-    rd = sub.add_parser("read"); rd.add_argument("--project"); rd.add_argument("--file", default="state")
+    rd = sub.add_parser("read"); rd.add_argument("--project"); rd.add_argument("--file", default="state"); rd.add_argument("--capture-scope")
     s = sub.add_parser("search"); s.add_argument("--project"); s.add_argument("--query")
     w = sub.add_parser("write"); w.add_argument("--project"); w.add_argument("--kind"); w.add_argument("--sid"); w.add_argument("--content")
     v = sub.add_parser("validate")
     reg = sub.add_parser("register"); reg.add_argument("--id"); reg.add_argument("--name", default=""); reg.add_argument("--aliases", default="")
+    cap = sub.add_parser("capture"); cap.add_argument("--capture-scope", required=True); cap.add_argument("--project-hint", default="UNKNOWN"); cap.add_argument("--routing-basis", default=""); cap.add_argument("--kind-hint", default="auto"); cap.add_argument("--content", required=True)
+    st = sub.add_parser("status"); st.add_argument("--settler", action="store_true"); st.add_argument("--project"); st.add_argument("--capture-scope")
+    sp = sub.add_parser("settle-plan"); sp.add_argument("--all", action="store_true"); sp.add_argument("--project")
+    rs = sub.add_parser("resolve"); rs.add_argument("--id", required=True); rs.add_argument("--project"); rs.add_argument("--basis"); rs.add_argument("--kind"); rs.add_argument("--candidate-project"); rs.add_argument("--reason", default=""); rs.add_argument("--covered-by"); rs.add_argument("--discard", action="store_true")
+    stl = sub.add_parser("settle"); stl.add_argument("--project", required=True); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
     elif args.cmd == "search": cmd_search(args)
     elif args.cmd == "write": cmd_write(args)
     elif args.cmd == "validate": sys.exit(cmd_validate(args))
-    elif args.cmd == "register": sys.exit(cmd_register(args))
+    elif args.cmd == "register": cmd_register(args)
+    elif args.cmd == "capture": cmd_capture(args)
+    elif args.cmd == "status": cmd_status(args)
+    elif args.cmd == "settle-plan": cmd_settle_plan(args)
+    elif args.cmd == "resolve": cmd_resolve(args)
+    elif args.cmd == "settle": cmd_settle(args)
 
 
 if __name__ == "__main__":

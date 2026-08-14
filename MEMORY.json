@@ -1,10 +1,17 @@
 {
-  "version": 2,
+  "version": "2.1",
   "routing_policy": "fail_closed",
   "global_read": [
     "global/RULES.md",
     "global/DECISIONS.md"
   ],
+  "staging": {
+    "root": "inbox",
+    "unknown_label": "UNKNOWN",
+    "pending_threshold": 20,
+    "unknown_threshold": 5,
+    "lazy_daily_consolidation": true
+  },
   "projects": {
     "teaching": {
       "aliases": [

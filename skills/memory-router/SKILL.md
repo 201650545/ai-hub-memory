@@ -35,11 +35,20 @@ python scripts/memory.py read --project <id> --file state|decision|changelog
 python scripts/memory.py search --project <id> --query <关键词>
 python scripts/memory.py write --project <id> --kind state|decision --sid S-xxx --content <内容>
 python scripts/memory.py validate
+
+# 隔离记忆 staging（v2.1）
+python scripts/memory.py capture --capture-scope <scope> [--project-hint <id|UNKNOWN>] --content <内容>
+python scripts/memory.py status --settler   # 仅 settler 可全量查看
+python scripts/memory.py settle-plan --all   # 只读规划
+python scripts/memory.py resolve --id <I-ID> --project <id> --basis user  # 或 --discard / --covered-by
+python scripts/memory.py settle --project <id> --dry-run   # 单项目晋升
 ```
 
 ## Fail Closed（R7，最重要）
-scope 不明确 → 宁可少读/不写，绝不猜。报错：
-> [memory] ERROR: unknown project_id / fail closed
+scope 不明确 → 正式项目记忆：宁可少读/不写，绝不猜。但**可以 capture 到隔离区**（v2.1）：
+- 无法唯一确定 project_id → 正式记忆 Fail Closed；
+- 但产生值得跨会话保留的候选事实 → 允许 `memory.py capture`（project_hint=UNKNOWN）；
+- UNKNOWN 内容不得获得正式项目记忆权限，不得读其他项目线。
 
 ## 项目路由表
 见仓库根 MEMORY.json（teaching / courseware / memory-system + aliases）。

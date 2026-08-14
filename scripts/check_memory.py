@@ -162,6 +162,15 @@ def main():
     if arc:
         problems.append("archive files immutable: " + ", ".join(arc))
 
+    # v2.1: inbox settled/receipts immutable (modify/delete blocked; first create A allowed)
+    for n in staged:
+        if n.startswith("inbox/settled/") or n.startswith("inbox/receipts/"):
+            r = git("diff", "--cached", "--name-status", "--", n)
+            if r.returncode == 0 and r.stdout.strip():
+                status = r.stdout.split()[0]
+                if status not in ("A", ""):
+                    problems.append("inbox settled/receipts immutable: " + n + " (status " + status + ")")
+
     if problems:
         for p in problems:
             print("[pre-commit] FAIL " + p)
