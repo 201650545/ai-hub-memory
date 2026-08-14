@@ -42,6 +42,10 @@ python scripts/memory.py status --settler   # 仅 settler 可全量查看
 python scripts/memory.py settle-plan --all   # 只读规划
 python scripts/memory.py resolve --id <I-ID> --project <id> --basis user  # 或 --discard / --covered-by
 python scripts/memory.py settle --project <id> --dry-run   # 单项目晋升
+
+# 同步 Agent 记忆（把 Agent 各自项目的记忆导入 ai-hub-memory）
+python scripts/memory.py sync --project <id> --file <来源.md> [--kind auto|state|decision] [--dry-run]
+python scripts/memory.py sync --project <id> --dir <目录> [--kind auto] [--dry-run]   # 批量
 ```
 
 ## Fail Closed（R7，最重要）

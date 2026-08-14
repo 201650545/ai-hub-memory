@@ -454,6 +454,66 @@ def cmd_validate(args):
     return 0
 
 
+def cmd_sync(args):
+    """同步 Agent 记忆：读取来源文件 -> 判断 kind -> 生成稳定 ID -> 写入项目线 + CHANGELOG。"""
+    manifest = load_manifest()
+    pid, _ = resolve_project(manifest, args.project)
+    src = Path(args.file)
+    if not src.exists():
+        sys.exit('[memory] ERROR: source file not found: ' + str(src))
+    text = src.read_text(encoding='utf-8', errors='ignore').strip()
+    if not text:
+        sys.exit('[memory] ERROR: empty source')
+    # R16: secret preflight BEFORE any write
+    hits = secret_hits(text)
+    if hits:
+        sys.exit('[memory] ERROR: credential-like content rejected in sync: ' + '; '.join(hits))
+    # kind 判断
+    kind = args.kind
+    if kind == 'auto':
+        if re.search(r'决策|决定|拍板|约定|今后|以后|规则', text):
+            kind = 'decision'
+        else:
+            kind = 'state'
+    if kind not in ('state', 'decision'):
+        sys.exit('[memory] ERROR: kind must be state|decision|auto')
+    # 正文截断防膨胀（STATE 单条合理长度）
+    body = text[:600] + ('...' if len(text) > 600 else '')
+    sid = next_memory_id(pid, kind)
+    if args.dry_run:
+        print('[memory] would sync ' + src.name + ' -> ' + pid + '/' + kind + ' ' + sid + ' body=' + body[:50])
+        return
+    write_memory_entry(pid, kind, sid, body)
+    print('[memory] synced ' + src.name + ' -> ' + sid + ' (' + pid + '/' + kind + ')')
+
+
+def cmd_sync_batch(args):
+    """批量同步目录下所有 .md/.txt 文件到指定项目。"""
+    manifest = load_manifest()
+    pid, _ = resolve_project(manifest, args.project)
+    d = Path(args.dir)
+    if not d.is_dir():
+        sys.exit('[memory] ERROR: dir not found: ' + str(d))
+    files = sorted([f for f in d.iterdir() if f.suffix.lower() in ('.md', '.txt')])
+    if not files:
+        print('[memory] no .md/.txt files in ' + str(d)); return
+    for f in files:
+        text = f.read_text(encoding='utf-8', errors='ignore').strip()
+        if not text: continue
+        hits = secret_hits(text)
+        if hits:
+            print('[memory] SKIP ' + f.name + ' (credential-like content)'); continue
+        kind = args.kind
+        if kind == 'auto':
+            kind = 'decision' if re.search(r'决策|决定|拍板|约定|今后|以后|规则', text) else 'state'
+        body = text[:600] + ('...' if len(text) > 600 else '')
+        sid = next_memory_id(pid, kind)
+        if args.dry_run:
+            print('[memory] would sync ' + f.name + ' -> ' + pid + '/' + kind + ' ' + sid)
+            continue
+        write_memory_entry(pid, kind, sid, body)
+        print('[memory] synced ' + f.name + ' -> ' + sid + ' (' + pid + '/' + kind + ')')
+
 def cmd_register(args):
     manifest = load_manifest()
     pid = args.id
@@ -492,6 +552,7 @@ def main():
     sp = sub.add_parser("settle-plan"); sp.add_argument("--all", action="store_true"); sp.add_argument("--project")
     rs = sub.add_parser("resolve"); rs.add_argument("--id", required=True); rs.add_argument("--project"); rs.add_argument("--basis"); rs.add_argument("--kind"); rs.add_argument("--candidate-project"); rs.add_argument("--reason", default=""); rs.add_argument("--covered-by"); rs.add_argument("--discard", action="store_true")
     stl = sub.add_parser("settle"); stl.add_argument("--project", required=True); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
+    sy = sub.add_parser("sync"); sy.add_argument("--project", required=True); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
@@ -499,6 +560,7 @@ def main():
     elif args.cmd == "write": cmd_write(args)
     elif args.cmd == "validate": sys.exit(cmd_validate(args))
     elif args.cmd == "register": cmd_register(args)
+    elif args.cmd == "sync": (cmd_sync_batch(args) if args.dir else cmd_sync(args))
     elif args.cmd == "capture": cmd_capture(args)
     elif args.cmd == "status": cmd_status(args)
     elif args.cmd == "settle-plan": cmd_settle_plan(args)
