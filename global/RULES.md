@@ -67,3 +67,4 @@ python scripts/memory.py settle --project <id> [--id <I-ID>] [--dry-run]
 ## global 的边界（克制！）
 可以放：记忆系统规则、repo 约定、全 Agent 必须遵守的 invariant、真正跨所有项目的决策。
 禁止放：任何单个项目的内容。判断标准：删除其中一个项目，这条记忆是否依然成立？否 → 不能进 global。
+**唯一例外**：`global/PROJECTS.md` 为跨仓库 registry/index——仅允许记录项目身份、职责边界和项目间关系，不视为单项目正式记忆；项目状态与实现细节仍禁止进入 global。
