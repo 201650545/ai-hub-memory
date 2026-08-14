@@ -3,6 +3,7 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-08-13
+- Claude：接手「门户资源清单雏形」收尾——复核 ai-hub `00_中央平台/resources_bridge.py` 数据桥链路（线上 GitHub Pages 实测返回 21 能力+21 实例）；修复 3 处：① 测试日期漂移（make_index 硬编码 2026-08-11 超 48h 新鲜期致 test_remote_ok 失败 → 改动态当前时间）② `LOCAL_DIR` 路径解析错误（原指向不存在的 `ai-hub/ai-resource-hub/public`，改环境变量+多候选探测，实测命中 `D:\项目\ai-resource-hub\public`）③ 将 test_resources_bridge（18 用例）纳入 `tests/run_all.py` 回归套件；全量回归 36 通过/0 失败/4 跳过（4 跳过为历史遗留共享组件缺失），已 push ai-hub `2d49b5e`。
 - Claude：问诊 GPT（镜像站 Extended）多 Agent 共享记忆方案，回复存档 `docs/问诊_多Agent共享记忆_20260813.md`。
 - Claude：搭共享记忆 4 文件骨架（AGENTS/STATE/DECISIONS/CHANGELOG）。
 - Claude：创建公开仓库 `ai-hub-memory` 并推送骨架（https://github.com/201650545/ai-hub-memory）。
