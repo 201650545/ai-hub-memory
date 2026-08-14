@@ -22,6 +22,7 @@ python scripts/memory.py read --project <id>
 python scripts/memory.py search --project <id> --query <关键词>
 python scripts/memory.py write --project <id> --kind state|decision --sid <S-ID> --content <内容>
 python scripts/memory.py validate
+python scripts/memory.py register --id <英文id> --name <中文名> --aliases <别名>   # 一键新建项目（先对话后注册）
 
 ## 读写时机（原有协议保留）
 - 新项目单元开始时：读 RULES + 本项目 STATE + 相关 DECISIONS。

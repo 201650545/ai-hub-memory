@@ -44,5 +44,24 @@ scope 不明确 → 宁可少读/不写，绝不猜。报错：
 ## 项目路由表
 见仓库根 MEMORY.json（teaching / courseware / memory-system + aliases）。
 
+
+## 新项目流程（先对话，后定项目）
+
+用户开启一个新任务时，**不需要提前在仓库建项目**。流程：
+
+1. **对话开始时**：按 R1-R7 判断 project_id——MEMORY.json 有匹配项目 → 走该项目记忆线；**没有匹配** → 只读 global/（RULES+DECISIONS），正常干活，不读/不写任何项目线（fail-closed，不猜）。
+2. **对话中**：正常执行任务，不写记忆（任务未完成/项目未定）。
+3. **对话结束、确定是新项目**：用户说「记为新项目 XX」或你判断这确实是个独立项目 → 运行：
+   ```bash
+   python scripts/memory.py register --id <英文id> --name <中文名> --aliases <别名1,别名2>
+   git add -A && git commit -m "memory: register project <id>" && git push
+   ```
+4. **之后**：该项目拥有独立记忆线，后续读写走正常路由。
+
+判断新项目（和已有项目的边界）：
+- 已有教学/课件/记忆系统 → 复用，不新建。
+- 明确的新领域/新目标（如英语教学、毕业设计）→ 新建。
+- 拿不准 → 问用户确认，不擅自建。
+
 ## 全局规则
 所有 Agent 必须遵守 global/RULES.md（含 9 条宪法、读写时机、凭证红线）。

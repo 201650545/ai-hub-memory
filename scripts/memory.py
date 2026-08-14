@@ -118,6 +118,33 @@ def cmd_write(args):
     print("[memory] wrote " + args.sid + " to " + pid + "/" + kinds[args.kind])
 
 
+def cmd_register(args):
+    """一键新建项目：更新 MEMORY.json + 建目录 + 骨架文件 + 更新根索引。"""
+    manifest = load_manifest()
+    pid = args.id
+    if not re.match(r'^[a-z0-9-]+$', pid):
+        sys.exit('[memory] ERROR: project id must be lowercase alnum+dash, e.g. english-teaching')
+    if pid in manifest['projects']:
+        sys.exit('[memory] ERROR: project ' + pid + ' already exists')
+    aliases = [a.strip() for a in (args.aliases or '').split(',') if a.strip()]
+    manifest['projects'][pid] = {'aliases': aliases, 'path': 'projects/' + pid, 'imports': []}
+    MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    pdir = ROOT / 'projects' / pid
+    (pdir / 'archive').mkdir(parents=True, exist_ok=True)
+    (pdir / 'STATE.md').write_text('# STATE.md — ' + (args.name or pid) + ' 项目状态\n\n> 当前状态（保留式更新，S-ID 稳定标识）。\n\n## 进行中\n- 无。\n\n## 已完成（最近）\n- 无。\n\n## 卡点\n- 无。\n\n## 下一步\n- 无。\n', encoding='utf-8')
+    (pdir / 'DECISIONS.md').write_text('# DECISIONS.md — ' + (args.name or pid) + ' 项目决策（append-only）\n\n> 只追加。\n', encoding='utf-8')
+    (pdir / 'CHANGELOG.md').write_text('# CHANGELOG.md — ' + (args.name or pid) + ' 项目流水（append-only）\n\n> 只追加。\n', encoding='utf-8')
+    # 更新根索引 STATE.md
+    idx = ROOT / 'STATE.md'
+    if idx.exists():
+        it = idx.read_text(encoding='utf-8')
+        row = '| ' + pid + '（' + (args.name or pid) + '） | projects/' + pid + ' | 进行中：无 |'
+        it = it.replace('| teaching（教学）', row + '\n| teaching（教学）', 1)
+        idx.write_text(it, encoding='utf-8')
+    print('[memory] registered project: ' + pid + ' (path projects/' + pid + ')')
+    print('[memory] next: git add -A && git commit -m "memory: register project ' + pid + '" && git push')
+    return 0
+
 def cmd_validate(args):
     manifest = load_manifest()
     problems = []
@@ -144,12 +171,14 @@ def main():
     s = sub.add_parser("search"); s.add_argument("--project"); s.add_argument("--query")
     w = sub.add_parser("write"); w.add_argument("--project"); w.add_argument("--kind"); w.add_argument("--sid"); w.add_argument("--content")
     v = sub.add_parser("validate")
+    reg = sub.add_parser("register"); reg.add_argument("--id"); reg.add_argument("--name", default=""); reg.add_argument("--aliases", default="")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
     elif args.cmd == "search": cmd_search(args)
     elif args.cmd == "write": cmd_write(args)
     elif args.cmd == "validate": sys.exit(cmd_validate(args))
+    elif args.cmd == "register": sys.exit(cmd_register(args))
 
 
 if __name__ == "__main__":
