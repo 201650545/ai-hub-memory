@@ -1,25 +1,23 @@
 # STATE.md — 当前状态（短期记忆）
 
 > 单写者 + 整体覆盖，**保留式更新**。每次更新整页重写，但稳定 ID（S-xxx）必须保留，删除必须先在 CHANGELOG 声明 DROP。
-> source_event_until: 2026-08-14-生命周期落地 | source_commit: 待提交 | last_rebuild: 2026-08-14
+> source_event_until: 2026-08-14-多项目隔离问诊 | source_commit: 216eb76 | last_rebuild: 2026-08-14
 
 ## 进行中
-- **[S-20260814-01] 记忆生命周期治理（进行中）**：膨胀方案已拍板（D-20260814-02），正在落地——AGENTS §2.5 已加、hook 扩展完成、rotate_memory.py 已建；余下：DECISIONS D-ID 已加，验证 + push。
-- **[S-20260814-12] 落地记忆生命周期（进行中）**：AGENTS 增「记忆生命周期/归档」段（§2.5）✓、check_memory.py 加 size guard + STALE + archive 锁 ✓、新增 scripts/rotate_memory.py ✓、DECISIONS 加 D-ID ✓；待验证 + push。
+- **[S-20260814-01] 多项目记忆隔离（待用户拍板）**：Claude 方案已落档——STATE 用方案 B（索引+分页）、DECISIONS/CHANGELOG 用方案 A（标签）、S-ID 加项目码；5 个待拍板点待定。
 
 ## 已完成（最近）
-- **[S-20260814-13] 记忆生命周期方案落地**（2026-08-14）：AGENTS §2.5 生命周期段 + check_memory.py 扩展（size/归档阈值/archive 锁/STALE）+ rotate_memory.py + DECISIONS D-ID。
-- **[S-20260814-11] 记忆膨胀/精简问诊（实读版）**（2026-08-14，v4 Flash）：GPT-5.6 Extended 回复 8587 字**确认实读**，落档 `docs/ai-advice/gpt56_问诊回复_记忆膨胀精简_2026-08-14.md`，push `bf8a4d9`。
-- **[S-20260814-02] 记忆备份/回退问诊（实读版）**（2026-08-14，v4 Flash）：确认实读，备份=Git+GitHub+按需 bundle；语义覆盖=稳定 ID+DROP+hook；回退=禁 force push；凭证=key rotation。push `e3478e2`。
-- **[S-20260814-09] 记忆守卫落地（完成）**（2026-08-14）：AGENTS 协议升级 + pre-commit hook（三项测试过）+ STATE 稳定 ID + .gitignore + 交接命令同步。push `ad731a1`/`6e6228a`。
-- **[S-20260814-10] 交接命令更新（完成）**（2026-08-14）：同步新写入协议（ff-only/保留式更新/稳定 ID/禁 force push）。
+- **[S-20260814-15] 多项目记忆隔离问诊**（2026-08-14）：GPT 镜像站故障转 Claude Sonnet 5 交叉校验，回复 5103 字落档 `docs/ai-advice/claude_sonnet5_问诊回复_多项目记忆隔离_2026-08-14.md`，push `216eb76`。
+- **[S-20260814-13] 记忆生命周期方案落地**（2026-08-14）：AGENTS §2.5 + hook 扩展 + rotate_memory.py + DECISIONS D-ID。
+- **[S-20260814-11] 记忆膨胀/精简问诊（实读版）**（2026-08-14，v4 Flash）：GPT-5.6 Extended 回复 8587 字确认实读，落档，push `bf8a4d9`。
+- **[S-20260814-02] 记忆备份/回退问诊（实读版）**（2026-08-14，v4 Flash）：确认实读，push `e3478e2`。
+- **[S-20260814-09] 记忆守卫落地（完成）**（2026-08-14）：AGENTS 升级 + hook + STATE 稳定 ID + .gitignore + 交接命令。push `ad731a1`/`6e6228a`。
+- **[S-20260814-10] 交接命令更新（完成）**（2026-08-14）：同步新写入协议。
 - **[S-20260814-03] 记忆备份/回退问诊（未读版）**（2026-08-14）：push `024467b`。
-- **[S-20260813-04] 记忆覆盖/主分记忆问诊**（2026-08-13）：当前别上主+分，先四文件+保留式更新。
 
 ## 卡点
 - 无。
 
 ## 下一步
-- **[S-20260814-14] 验证生命周期落地**：测试新 hook 检查（size 超限拦截/archive 锁/rotate 脚本）→ push ai-hub-memory。
+- **[S-20260814-14] 落地多项目隔离**：用户拍板 Claude 方案 + 5 个待确认点后——AGENTS 加多项目协议、STATE 拆索引+分页、hook 改逐文件检测、S-ID 加项目码、新增 scripts（regen-index/decisions-for/changelog-for）。
 - 补 OpenCode Go / WorkBuddy 额度详情（待用户确认）。
-012345678901234567890123456789012345678901234
