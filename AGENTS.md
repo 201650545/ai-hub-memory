@@ -90,7 +90,8 @@
 ---
 
 ## 3. 工具地图（已打通）
-- opencli 外部 CLI：`lark-cli`=飞书、`gh`=GitHub、`tg`、`wecom-cli`=企业微信、`wx`=微信、notion、obsidian、longbridge…
+- **完整工具手册见 `global/TOOLS.md`**（gh / lark-cli / opencli / 网关 :3000 的能力、命令、登录态、坑）。
+- 三大关键工具：`gh`=GitHub、`lark-cli`=飞书、`opencli`=浏览器/多站适配器（另：`tg`、`wecom-cli`=企业微信、`wx`=微信、notion、obsidian、longbridge…）
 - opencli browser 控 AI 引擎：doubao-app / chatgpt-app / codex / cursor 等 adapter。
 - 统一网关 `:3000`（`D:\项目\services\search_gateway`，opencli 控 5 引擎：元宝/豆包/Kimi/千问/Meta AI）。
 - 编排器 `:8791`（课件生成）。
