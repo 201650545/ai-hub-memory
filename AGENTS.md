@@ -1,5 +1,7 @@
 # AGENTS.md — 多 Agent 协作协议（启动引导）
 
+> ⚡ **v2 已启用（2026-08-14）**：记忆已按项目隔离——三件套在 projects/<id>/ 下，读写必须走 `python scripts/memory.py`，路由表见 MEMORY.json，Agent 行为协议见 skills/memory-router/SKILL.md，全局规则见 global/RULES.md。以下条款在 v2 下仍有效，但「读 STATE+DECISIONS」指读当前项目的，写必须经 memory.py。
+>
 > ⚠️ 本文件是「启动引导」，不是「强制配置」。任何 Agent（Claude Code / ChatGPT / Kimi / 执行 Agent）接手任务前先读它。要真正保证「读到 + 照做」，靠 **hook + 交接命令模板兜底**，不能只靠本文件。
 >
 > **本仓库 = 多 Agent 共享记忆的唯一真源**。记忆以「项目」为原子单元，不是以「对话」为单元。

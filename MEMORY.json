@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "routing_policy": "fail_closed",
+  "global_read": [
+    "global/RULES.md",
+    "global/DECISIONS.md"
+  ],
+  "projects": {
+    "teaching": {
+      "aliases": [
+        "教学",
+        "课程",
+        "教案",
+        "teaching"
+      ],
+      "path": "projects/teaching",
+      "imports": []
+    },
+    "courseware": {
+      "aliases": [
+        "课件",
+        "PPT",
+        "slides",
+        "courseware"
+      ],
+      "path": "projects/courseware",
+      "imports": []
+    },
+    "memory-system": {
+      "aliases": [
+        "记忆系统",
+        "memory",
+        "agent memory",
+        "memory-system"
+      ],
+      "path": "projects/memory-system",
+      "imports": []
+    }
+  }
+}
