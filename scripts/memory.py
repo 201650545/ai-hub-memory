@@ -639,8 +639,6 @@ def cmd_checkpoint(args):
     target = ROOT / path / kinds[args.kind]
     cl = ROOT / path / "CHANGELOG.md"
     files = [str(target), str(cl)]
-    if args.checkpoint_id:
-        files.append(str(checkpoint_id_marker(pid, args.checkpoint_id)))
     git('add', '--', *files)
     c = git('commit', '-m', 'memory: checkpoint ' + sid + ' (' + pid + ')')
     if c.returncode != 0:

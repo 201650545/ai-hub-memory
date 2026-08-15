@@ -4,3 +4,6 @@ credentials.json
 .env
 secrets/
 *.key
+
+# R18 checkpoint 幂等标记（本地状态，不共享）
+**/.checkpoints/
