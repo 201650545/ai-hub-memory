@@ -37,7 +37,13 @@ SECRET_PATTERNS = [
 
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True, cwd=str(ROOT))
+    """Run git in repo root; inject the current python dir into PATH so pre-commit
+    hooks that call python/python3 resolve even when the caller PATH lacks it."""
+    env = os.environ.copy()
+    py_dir = os.path.dirname(sys.executable)
+    if py_dir and py_dir not in env.get("PATH", "").split(os.pathsep):
+        env["PATH"] = py_dir + os.pathsep + env.get("PATH", "")
+    return subprocess.run(["git", *args], capture_output=True, text=True, cwd=str(ROOT), env=env)
 
 
 def load_manifest():

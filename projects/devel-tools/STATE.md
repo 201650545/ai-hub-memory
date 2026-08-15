@@ -4,6 +4,8 @@
 - 无。
 
 ## 已完成（最近）
+- **[S-20260815-08]** R18 checkpoint 全链路验证（2026-08-15）
+- **[S-20260815-07]** R18 checkpoint 全链路验证通过（2026-08-15）：幂等保存 + 自动 commit + push 闭环正常，marker 本地化不入库。（2026-08-15）
 - **[S-20260815-06]** R18 checkpoint 闭环验证二（2026-08-15）
 - **[S-20260815-05]** R18 checkpoint 闭环验证通过（2026-08-15）：bootstrap 注入规则 + checkpoint 幂等保存 + git commit/push 全链路可用。（2026-08-15）
 - **[S-20260815-04]** R18 Memory Checkpoint 落地（2026-08-15，GPT 评审定稿）：RULES.md 加 R18（事件优先+10 用户回合 watchdog），AGENTS.md/SKILL.md 同步引用，memory.py 新增 bootstrap（唯一入口注入规则+上下文）与 checkpoint（幂等保存+自动 commit/push）命令。（2026-08-15）
