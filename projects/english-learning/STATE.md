@@ -4,6 +4,21 @@
 - 无。
 
 ## 已完成（最近）
+- **[S-20260814-04]** # FSRS 调度字段已落地（记忆策略 v1，2026-08-11）
+
+英语学习系统的 FSRS+消退提示已从「策略决策」落地为飞书字段 + AI 规则：
+
+1. 字段落地（feishu-data-hub 的 learning-english 项目）
+- learning-log 9→19 字段，新增：复习轮次/连续答对次数/连续答错次数/间隔天数/计划间隔天数/本次等级/FSRS难度/FSRS稳定度/下次复习时间/遗忘累计
+- vocabulary 22→28 字段，新增：复习轮次/FSRS难度/FSRS稳定度/连续答对次数/连续答错次数/遗忘累计
+
+2. AI 规则入口（8 条调度规则已写入）
+- content/projects/learning-english/agent-guide.md 新增「记忆策略调度规则（FSRS+消退提示）」章节，含字段语义、数据架构职责、回退/re-learning、R6非毕业、中译英提前R3、同日不计间隔、冷启动轨迹、legacy_unverified 诊断
+- 部署于 GitHub Pages：/projects/learning-english/agent-guide.md
+
+3. 阶段三分析结论（352 条日志、130 词）
+- 96% 词只测 1 次、94.6% 停在阶段0 → FSRS 闭环尚未真正跑起来
+- 生产端（中英拼写 80...（2026-08-14）
 - **[S-20260814-03]** # 英语学习下一步（2026-08-14）
 
 到期复习3批待做：
