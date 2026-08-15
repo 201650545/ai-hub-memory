@@ -17,6 +17,11 @@
   ```bash
   python scripts/memory.py register --id <英文id> --name <中文名> --aliases <别名>
   ```
+- **如果归属拿不准**（分不清属于教学/课件/记忆系统哪个，又不像全新项目）→ 不要强行归类，改用隔离区上报（capture），由 settler 审核后再归类：
+  ```bash
+  python scripts/memory.py capture --capture-scope <你的Agent名> --project-hint UNKNOWN --content "<一条记忆内容>"
+  ```
+  > 上报后即可结束，**不需要走下面第二步到第六步**（settle 是审核方做的事，不是你）；一条记忆 capture 一次。
 
 ### 第二步：整理你的记忆（什么该记）
 把记忆写成 .md 或 .txt 文件，**一条记忆一个文件**（或放同一个目录），内容为：
