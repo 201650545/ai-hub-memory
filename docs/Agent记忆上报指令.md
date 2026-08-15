@@ -12,7 +12,7 @@
 你现在是一个【<项目名>】项目的 Agent。任务结束前，请把你在这个项目里产生的、值得其他 Agent 知道的记忆，同步到共享记忆仓库 ai-hub-memory。
 
 ### 第一步：确认你的项目
-- 你的项目 id 是：<项目id>（teaching=教学 / courseware=课件 / memory-system=记忆系统）。
+- 你的项目 id 是：<项目id>（teaching=教学 / courseware=课件 / memory-system=记忆系统 / english-teaching=英语教学 / english-learning=英语学习 / devel-tools=工具链）。完整清单以仓库根 MEMORY.json 的 projects 键为准。
 - 如果这是一个全新项目（上面三个都不是），先注册：
   ```bash
   python scripts/memory.py register --id <英文id> --name <中文名> --aliases <别名>
@@ -73,12 +73,17 @@ python scripts/memory.py read --project <项目id> --file decision # 应看到�
 
 ## 发给各 Agent 时的填法示例
 
-| Agent | 填项目名 | 填项目 id |
+| Agent / 项目 | 填项目名 | 填项目 id |
 |-------|---------|-----------|
-| 教学 Agent | 教学 | teaching |
-| 课件 Agent | 课件 | courseware |
-| 记忆系统 Agent | 记忆系统 | memory-system |
-| 新项目 Agent（如英语教学） | 英语教学 | english-teaching（先 register） |
+| 教学 | 教学 | teaching |
+| 课件 | 课件 | courseware |
+| 记忆系统 | 记忆系统 | memory-system |
+| 英语教学 | 英语教学 | english-teaching |
+| 英语学习 | 英语学习 | english-learning |
+| 工具链/DSH 开发 | 工具链/DSH 开发 | devel-tools |
+| 全新项目 | （你的中/英文名） | <英文id>（先 register，下方见） |
+
+> 项目清单是动态的：以仓库根 MEMORY.json 的 projects 键为准（现为上述 6 个项目）。新增项目后请同步更新本表。
 
 ---
 （完）
