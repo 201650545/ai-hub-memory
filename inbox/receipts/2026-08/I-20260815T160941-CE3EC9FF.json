@@ -1,0 +1,11 @@
+{
+  "schema": "settlement-receipt-v1",
+  "id": "I-20260815T160941-CE3EC9FF",
+  "settled_at": "2026-08-15T16:09:48.188649+00:00",
+  "disposition": "discarded",
+  "capture_scope": "test",
+  "original_project_hint": "UNKNOWN",
+  "final_project": null,
+  "target_id": null,
+  "reason": "测试残留"
+}

@@ -448,6 +448,10 @@ def shutil_move(src, dst):
 
 
 def cmd_settle(args):
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        print("NEXT_ACTION=SELECT_PROJECT")
+        sys.exit(2)
     ensure_ff_pull()
     # preflight all items first, then apply (atomic-ish)
     manifest = load_manifest()
@@ -503,6 +507,10 @@ def cmd_validate(args):
 
 def cmd_sync(args):
     """同步 Agent 记忆：读取来源文件 -> 判断 kind -> 生成稳定 ID -> 写入项目线 + CHANGELOG。"""
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        print("NEXT_ACTION=SELECT_PROJECT")
+        sys.exit(2)
     manifest = load_manifest()
     pid, _ = resolve_project(manifest, args.project)
     src = Path(args.file)
@@ -582,13 +590,49 @@ def _bootstrap_rules_summary():
     print("- credentials must never enter memory")
 
 
+def _git_sync_status():
+    """返回 (MEMORY_COMMIT, SYNC_STATUS)：Git 本地 head 与远端同步状态（GPT 2026-08-15 建议）。"""
+    head = git('rev-parse', 'HEAD')
+    commit = head.stdout.strip()[:12] if head.returncode == 0 else "unknown"
+    st = git('status', '--porcelain')
+    dirty = bool(st.stdout.strip()) if st.returncode == 0 else True
+    if dirty:
+        return commit, "stale"  # 本地有未提交改动
+    fr = git('fetch', 'origin', '--quiet')
+    if fr.returncode != 0:
+        return commit, "unknown"
+    behind = git('rev-list', '--count', 'HEAD..origin/HEAD')
+    ahead = git('rev-list', '--count', 'origin/HEAD..HEAD')
+    try:
+        b = int(behind.stdout.strip() or '0')
+        a = int(ahead.stdout.strip() or '0')
+    except Exception:
+        return commit, "unknown"
+    if b > 0 and a > 0:
+        return commit, "conflict"
+    if b > 0:
+        return commit, "stale"
+    if a > 0:
+        return commit, "local_ahead"
+    return commit, "current"
+
+
 def cmd_bootstrap(args):
     """协议入口（GPT 评审 2026-08-15 定稿）：Agent 进入记忆线的唯一入口。
     无 --project → 输出协议状态 + 项目列表 + NEXT_ACTION=SELECT_PROJECT（固定首轮响应）。
-    有 --project → 输出 ACTIVE_PROJECT/ALLOWED_SCOPE + R18 规则 + 项目 STATE/DECISIONS + staging。"""
+    有 --project → 输出 ACTIVE_PROJECT/ALLOWED_SCOPE + R18 规则 + 项目 STATE/DECISIONS + staging。
+    均返回 MEMORY_COMMIT + SYNC_STATUS（防基于旧 checkout 工作）。"""
     manifest = load_manifest()
     print("==== MEMORY_BOOTSTRAP ====")
     _bootstrap_protocol_header()
+    commit, sync = _git_sync_status()
+    print("MEMORY_COMMIT=" + commit)
+    print("SYNC_STATUS=" + sync)
+    if sync != "current":
+        print("NEXT_ACTION=SYNC_MEMORY")
+        print("WARNING=memory source not current; run git pull --ff-only before working")
+        print("==== END BOOTSTRAP ====")
+        return
     if not args.project:
         # 无项目模式：告诉 Agent 当前未选项目，只能读 global
         print("ACTIVE_PROJECT=none")
@@ -760,8 +804,8 @@ def main():
     st = sub.add_parser("status"); st.add_argument("--settler", action="store_true"); st.add_argument("--project"); st.add_argument("--capture-scope")
     sp = sub.add_parser("settle-plan"); sp.add_argument("--all", action="store_true"); sp.add_argument("--project")
     rs = sub.add_parser("resolve"); rs.add_argument("--id", required=True); rs.add_argument("--project"); rs.add_argument("--basis"); rs.add_argument("--kind"); rs.add_argument("--candidate-project"); rs.add_argument("--reason", default=""); rs.add_argument("--covered-by"); rs.add_argument("--discard", action="store_true")
-    stl = sub.add_parser("settle"); stl.add_argument("--project", required=True); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
-    sy = sub.add_parser("sync"); sy.add_argument("--project", required=True); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
+    stl = sub.add_parser("settle"); stl.add_argument("--project"); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
+    sy = sub.add_parser("sync"); sy.add_argument("--project"); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
     bt = sub.add_parser("bootstrap"); bt.add_argument("--project"); bt.add_argument("--capture-scope")
     cp = sub.add_parser("checkpoint"); cp.add_argument("--project"); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
     args = p.parse_args()
