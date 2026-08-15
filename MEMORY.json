@@ -64,6 +64,17 @@
       ],
       "path": "projects/english-learning",
       "imports": []
+    },
+    "devel-tools": {
+      "aliases": [
+        "开发",
+        "工具链",
+        "deepseek harness",
+        "dsh",
+        "源码"
+      ],
+      "path": "projects/devel-tools",
+      "imports": []
     }
   }
 }
