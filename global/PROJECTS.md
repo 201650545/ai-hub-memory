@@ -17,6 +17,7 @@
 | ai-hub-memory | Agent 共享记忆、路由规则、项目状态 | 业务实现、资源实时状态 | MEMORY.json / 对应 project STATE |
 | ai-resource-hub | AI 资源运营与配置来源（API/账号/额度） | Agent 记忆规则 | repo README / 资源真源 |
 | ai-hub | AI 网关、搜索、编排操作面 | 资源台账真源 | repo README |
+| courseware（记忆侧项目） | 课件生产（对应 english-teaching-production 仓库业务） | 通用 Agent 基础设施 | english-teaching-production README / courseware STATE |
 | feishu-data-hub | 飞书数据公开/静态桥接 | 飞书业务数据的编辑逻辑 | repo README |
 | english-teaching-production | 教学生产规范、工具和流程 | 通用 Agent 基础设施 | repo README / teaching STATE |
 
@@ -25,6 +26,7 @@
 - 资源配置 → ai-resource-hub → ai-hub / Agents
 - ai-hub-memory → 为所有 Agent 提供共享记忆
 - english-teaching-production → 教学业务执行层
+- **映射**：记忆侧 teaching + courseware 两项目 ↔ GitHub 侧同一 english-teaching-production（private）仓库（教学/课件业务都在该仓库，private 不适用公开 JSON 消费模式）
 
 ## 下一跳
 - 不知道任务属于哪里 → 本页判断

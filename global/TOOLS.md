@@ -98,7 +98,12 @@
   - 签名头 x-pan-token = sha256("POST&/open/v1/file/list&<毫秒tm>&signKey")；client-id 必须写死 third_party_agent；
   - req_id 必须 UUIDv4；空 keyword 搜索会 400（search 无法枚举目录，必须走 file/list）；
   - 修改 minified 文件别用 bash 双引号传 \n（用脚本文件打补丁 + node --check 验证）。
-- 详细逆向方法论/完整代码/凭证结构：见 `D:\项目\docs\夸克网盘列目录_qk-list_操作文档.md`（HOW 详解，本手册只放速用）。
+- 详细逆向方法论/完整代码/凭证结构：见 docs 目录《夸克网盘列目录_qk-list_操作文档.md》（HOW 详解，本手册只放速用）。
+
+## 6.5 公开数据消费规范（R9，GLM 审查 2026-08-14）
+- 读取 GitHub Pages 公开 JSON（ai-resource-hub / feishu-data-hub）前，**先读 catalog/status**。
+- `is_stale=true` 时**回退飞书真源或提示用户**，不用陈旧数据决策。
+- 新鲜度：数据生成时间 vs 当前时间，超阈值视为 stale。
 
 ## 7. 通用安全红线
 TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间接恢复认证的材料**。禁止：

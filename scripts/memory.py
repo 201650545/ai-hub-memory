@@ -244,7 +244,16 @@ def cmd_search(args):
     print("\n".join(hits) if hits else "[memory] no hits in project " + pid)
 
 
+def ensure_ff_pull():
+    """R2 (GLM review 2026-08-14): write/settle 前强制 git pull --ff-only。
+    失败（工作区脏/远端分叉）即拒绝写入——与 Fail Closed 同构。"""
+    r = git('pull', '--ff-only')
+    if r.returncode != 0:
+        sys.exit('[memory] ERROR: git pull --ff-only failed (worktree dirty or diverged). '
+                + 'Resolve local changes / pull conflicts, then retry write. (R2 强制先 pull)')
+
 def cmd_write(args):
+    ensure_ff_pull()
     manifest = load_manifest()
     pid, path = resolve_project(manifest, args.project)
     if args.kind not in ("state", "decision"):
@@ -293,6 +302,20 @@ def cmd_status(args):
         print("[memory] last_settle_date=" + str(meta.get("last_settle_date")))
         due = len(items) >= (load_manifest().get("staging", {}).get("pending_threshold", 20)) or unknown >= 5
         print("[memory] settle_due=" + ("yes" if due else "no"))
+        # R8 (GLM review): 超阈值停留天数提醒
+        if items:
+            oldest_date = None
+            for f, _, _ in items:
+                try:
+                    d = datetime.strptime(f.parent.name, "%Y-%m-%d")
+                    if oldest_date is None or d < oldest_date:
+                        oldest_date = d
+                except Exception:
+                    continue
+            if oldest_date:
+                days = (datetime.now().date() - oldest_date.date()).days
+                if days > 0:
+                    print("[memory] inbox 超阈值已停留 " + str(days) + " 天（最旧 " + oldest_date.strftime("%Y-%m-%d") + "），建议 settle 整理")
         return
     if not args.project:
         sys.exit("[memory] ERROR: status needs --settler or --project")
@@ -402,6 +425,7 @@ def shutil_move(src, dst):
 
 
 def cmd_settle(args):
+    ensure_ff_pull()
     # preflight all items first, then apply (atomic-ish)
     manifest = load_manifest()
     pid, _ = resolve_project(manifest, args.project)

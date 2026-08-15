@@ -93,7 +93,7 @@
 ## 3. 工具地图（已打通）
 - **外部工具能力与调用方式以 `global/TOOLS.md` 为唯一真源**（gh / lark-cli / opencli / 网关 :3000 的能力、命令、Preflight、坑、安全红线）。本段不重复工具能力清单，避免漂移。
 - 三大关键工具：`gh`=GitHub、`lark-cli`=飞书、`opencli`=浏览器/多站适配器。
-- 编排器 `:8791`（课件生成）；DeepSeek Harness `:3080`（`D:\DeepSeek\deepseek-harness`，源码构建）。
+- 编排器（课件生成）与 DeepSeek Harness（源码构建）的端口/路径等运行态细节见 ai-hub 仓库操作面（memory 侧只存指针：工具名 + 用途 + 真源在 ai-hub / TOOLS.md）。
 
 ## 4. 工作模型
 按需调度：用户自然说一句话，Agent 当调度大脑，自己判断该打哪个已打通工具（飞书表→lark-cli、仓库→gh、搜索→网关多引擎、额度→台账），去查、去连、去汇总、去解决。**不搭定时提醒/汇报平台**。

@@ -40,6 +40,12 @@ R15. staging item 在 settle/discard 后不得无痕删除。原 candidate 移�
 
 R16. 凭证/API key/token/secret 绝不进入任何 memory/staging 文件或 commit。capture 必须在文件落盘前执行 secret preflight 并 fail closed；pre-commit secret guard 作第二道防线。
 
+R17. **决策优先级（GLM 审查 2026-08-14）**：项目域内冲突时**项目决策胜出**；global 只维护跨项目 invariant，不覆盖项目专属决策。项目决策要覆盖全局规则时，需显式声明「对全局 D-xxx 的项目内例外」。
+
+**GLM 审查约定（2026-08-14）**：
+- **调度器 M1 落位（R1）**：代码住 ai-hub 网关模块，数据读 ai-resource-hub（公开 JSON / 本地 credentials.json 信任平面），接口单向只读——M1 动工前按此约定。
+- **数据桥收敛（R4，缓一步待办）**：飞书→GitHub Pages 双管道（exporter + feishu-data-hub）未来收敛为 feishu-data-hub 单管道；当前保留 exporter（已上线，ai-resource-hub 依赖），单独规划后再动。
+
 ## 命令
 ```bash
 # 正式记忆
