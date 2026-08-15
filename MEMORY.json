@@ -53,6 +53,17 @@
       ],
       "path": "projects/english-teaching",
       "imports": []
+    },
+    "english-learning": {
+      "aliases": [
+        "英语学习",
+        "自学",
+        "考研英语",
+        "词汇复习",
+        "翻译学习"
+      ],
+      "path": "projects/english-learning",
+      "imports": []
     }
   }
 }
