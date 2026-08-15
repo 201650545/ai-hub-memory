@@ -5,6 +5,7 @@
 ## 2026-08-14
 - [归档] DROP S-20260814-01 — 记忆系统 v2 升级完成，滚出「已完成」8 条窗口。
 - [归档] DROP S-20260814-09 — 记忆守卫落地完成，滚出「已完成」8 条窗口。
+- v4 Flash：GLM5.3 架构审查报告落档（Trae 侧执行，实核本地仓库）——总评「方向正确不需重构，问题在重不在缺」；4 实质问题：F1 双管道（exporter vs feishu-data-hub）/ F2 资源台账双真源（RESOURCES.md 额度快照）/ F3 并发写防护未下沉脚本 / 决策优先级缺失；9 条建议 R1-R9（P0：write/settle 内置强制 pull + RESOURCES 指针化 + 数据桥收敛；P1：路由表补全 + TOOLS 去快照化 + 决策优先级；P2：调度器落位约定 + status 提醒 + 消费规范）。落档 ai-resource-hub `fc168f4`。**3 决策点待用户拍板**（数据桥收敛方向 / RESOURCES 指针化 / 调度器 M1 落位）。
 - v4 Flash：GPT 审查 PROJECTS 全景方案（实读确认）→ 采纳 5 分法（RULES=MUST/PROJECTS=WHERE/RESOURCES=WHAT/TOOLS=HOW/STATE=NOW）+ PROJECTS 瘦身为纯路由图（29 行，删状态/版本/端口）+ RULES 补跨仓库 registry 例外；拍板 3 点（例外/global_read 保留/删状态字段）落地 push `1dfda9b`。落档 ai-resource-hub `464a5ac`。
 - v4 Flash：新增 `global/PROJECTS.md` 项目全景（5 GitHub 仓库完整介绍：ai-hub-memory/ai-resource-hub/ai-hub/feishu-data-hub/english-teaching-production + 关系图 + Agent 提示）——**进入记忆常读层**（MEMORY.json global_read + 根 STATE 导航 + AGENTS 读清单），任何 Agent 读记忆即懂全局，无需翻各仓库。push `165b3e2`。
 - v4 Flash：交付 `memory.py sync` 记忆同步命令——Agent 把各自项目的记忆批量导入 ai-hub-memory（单文件 --file / 批量 --dir；自动判断 state/decision；生成稳定 ID 写 STATE/DECISIONS + 自动 CHANGELOG；R16 secret preflight；--dry-run 预览）；SKILL.md + 交接命令同步用法。push ai-hub-memory `cfdecb1`。另生成《架构浓缩包》（docs/架构浓缩包_GLM审查_2026-08-14.md，供 GLM5.3 单文件审查省资源），push `3491106`。
