@@ -67,6 +67,7 @@
   - 界面形态（textarea vs contenteditable）随版本变 → 按页面实际适配；
   - Windows 长文本 → base64 + eval 注入，勿直接 CLI 传参；
   - 多链接提示词可能触发 Deep Research 空回复 → 单链接/内嵌版或转 Claude。
+- **会话纪律（用户拍板 2026-08-15，强制）**：① 进入镜像站后**复用左侧历史会话**（点历史记录进入，不新开对话），再调模型为 Thinking·Extended；② **每个问题 ≤3 轮对答**解决（含 GPT 反问的交流，3 轮内必须解决回来执行）；③ **每窗口 ≤42 轮**，超了必须新开对话（新开后重新选模型）。详细步骤见 ai-resource-hub 操作手册 01 §9。
 
 ## 5. 统一 AI 搜索网关（:3000）
 - 用途：4 大 AI 搜索（元宝/Kimi/秘塔/豆包）并发 + LLM 渠道聚合（DeepSeek 官方/Gemini/OpenRouter）。
