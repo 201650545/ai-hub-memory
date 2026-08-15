@@ -6,7 +6,7 @@
 Memory = Global Kernel + Project Namespace + Layered Retrieval + **Quarantined Ingress**；
 **Routing before Retrieval**、**Multi-read / Single-write**、**Fail Closed**（定不了就拒绝，绝不猜）。
 
-## 16 条宪法（v2.1）
+## 18 条宪法（v2.1 + R18 Memory Checkpoint）
 
 R1'. 正式项目记忆的读取/搜索/写入/巩固必须携带明确 project_id；staging capture 不要求先确定 project_id，但必须携带 capture_scope，project_hint 可为已注册项目或 UNKNOWN。
 
@@ -41,6 +41,8 @@ R15. staging item 在 settle/discard 后不得无痕删除。原 candidate 移�
 R16. 凭证/API key/token/secret 绝不进入任何 memory/staging 文件或 commit。capture 必须在文件落盘前执行 secret preflight 并 fail closed；pre-commit secret guard 作第二道防线。
 
 R17. **决策优先级（GLM 审查 2026-08-14）**：项目域内冲突时**项目决策胜出**；global 只维护跨项目 invariant，不覆盖项目专属决策。项目决策要覆盖全局规则时，需显式声明「对全局 D-xxx 的项目内例外」。
+
+R18. **自动记忆检查（Memory Checkpoint，GPT 评审 2026-08-15 定稿）**：出现以下任一事件时主动检查是否产生值得跨会话保留的信息——可交付单元完成、用户拍板决策、关键共享状态变化、Agent/会话交接；若连续约 10 个用户回合均未发生检查，则强制执行一次兜底检查。**检查不等于写入**：符合 R13「值不值得成为正式记忆」才写正式记忆——项目明确则用 memory.py write/checkpoint，项目未定则 capture，无新增价值则跳过。可控的会话结束/交接前必须执行 checkpoint；异常中断以最近一次成功 checkpoint 为恢复点。「轮」定义为「一个用户 prompt = 一个用户回合」，由平台生命周期 hook 机械计数（DSH onTurnCommitted / Claude Code UserPromptSubmit），不依赖模型自行数轮次。会话内由 Agent 生命周期事件触发的 checkpoint 不违反 R14（R14 禁止的是给 consolidation 搭建 cron/daemon 定时平台）。
 
 **GLM 审查约定（2026-08-14）**：
 - **调度器 M1 落位（R1）**：代码住 ai-hub 网关模块，数据读 ai-resource-hub（公开 JSON / 本地 credentials.json 信任平面），接口单向只读——M1 动工前按此约定。

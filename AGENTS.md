@@ -36,6 +36,15 @@
 
 > 一句话记忆法：**新项目开始前读一遍，一个单元交付后写一条。** 判断不了就默认「先读 STATE 一眼」，宁读不重写。
 
+### 自动检查（R18 Memory Checkpoint，2026-08-15 起）
+
+> 进入项目记忆线**必须**用 python scripts/memory.py bootstrap --project <id>（唯一入口，自动注入 R18 规则 + 项目 STATE/DECISIONS + 绑定变量）。禁止依赖模型自行记住轮次；平台有 lifecycle hook 时由 hook 提供 checkpoint_due 信号。
+
+- 出现以下任一事件 → 检查是否产生值得跨会话保留的信息：**可交付单元完成 / 用户拍板决策 / 关键共享状态变化 / Agent·会话交接**。
+- 连续约 **10 个用户回合**无检查 → 强制执行一次兜底检查。
+- **检查 ≠ 写入**：项目明确 → memory.py checkpoint（自动 commit+push）；项目未定 → capture；无新增价值 → 跳过。
+- 可控的会话结束/交接前 → 必须执行一次 checkpoint；异常中断以最近一次成功 checkpoint 为恢复点。
+
 ---
 
 ## 1. 读什么 / 写什么
@@ -102,7 +111,7 @@
 - 课件 / 配套练习「生成」→ 执行 Agent（我只写命令 + 复核）。
 - 删除 / 归档 / 改名 / 规范编辑 / 整理 → 我（Claude Code）。
 - 前端方案 → Kimi K3；架构方案 → 最先进模型把关。
-- 每次执行前先向用户确认。
+- **代表用户执行（D-GLOBAL-20260815-02）**：技术决策由 Agent 代表用户处理，不逐项确认；拿不准转 GPT 问诊（≤3 轮）；完成只告知「项目已可用」。
 
 ## 6. 安全红线
 - 凭证值只进 `scheduler/credentials.json`（信任平面）；绝不进 chat / 报告 / commit / 飞书 / logs。

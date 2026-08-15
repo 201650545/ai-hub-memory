@@ -37,7 +37,7 @@ SECRET_PATTERNS = [
 
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True)
+    return subprocess.run(["git", *args], capture_output=True, text=True, cwd=str(ROOT))
 
 
 def load_manifest():
@@ -538,6 +538,128 @@ def cmd_sync_batch(args):
         write_memory_entry(pid, kind, sid, body)
         print('[memory] synced ' + f.name + ' -> ' + sid + ' (' + pid + '/' + kind + ')')
 
+def cmd_bootstrap(args):
+    """R18/checkpoint 注入入口（GPT 评审 2026-08-15 推荐）：Agent 进入项目记忆线的唯一入口。
+    固定返回：RULES 中的 Checkpoint 策略 + 项目 STATE + DECISIONS + 可见 staging + 绑定变量。
+    Agent 只跑 bootstrap，不必分别 read RULES/STATE/DECISIONS。"""
+    manifest = load_manifest()
+    pid, path = resolve_project(manifest, args.project)
+    rules_f = ROOT / "global" / "RULES.md"
+    print("==== MEMORY_BOOTSTRAP ====")
+    print("MEMORY_PROJECT_ID=" + pid)
+    print("MEMORY_CHECKPOINT_POLICY=R18")
+    print("MEMORY_ROUTING=" + "explicit")
+    print()
+    if rules_f.exists():
+        rules = rules_f.read_text(encoding="utf-8")
+        print("---- GLOBAL RULES (Checkpoint policy) ----")
+        # 只输出 R18 及读写时机（不全文倾泻宪法）
+        lines = rules.splitlines()
+        emit = False
+        for ln in lines:
+            if ln.startswith("R18") or ln.startswith("R1'"):
+                emit = True
+            elif ln.startswith("R") and not (ln.startswith("R18") or ln.startswith("R1'")):
+                emit = False
+            if emit:
+                print(ln)
+        # 读写时机段
+        in_timing = False
+        for ln in lines:
+            if ln.startswith("## 读写时机"):
+                in_timing = True
+            elif in_timing and ln.startswith("## "):
+                in_timing = False
+            if in_timing:
+                print(ln)
+    print()
+    state_f = ROOT / path / "STATE.md"
+    if state_f.exists():
+        print("---- PROJECT STATE ----")
+        print(state_f.read_text(encoding="utf-8"))
+    dec_f = ROOT / path / "DECISIONS.md"
+    if dec_f.exists():
+        dec = dec_f.read_text(encoding="utf-8")
+        if dec.strip() and len(dec.strip()) > 0:
+            print("---- PROJECT DECISIONS ----")
+            print(dec)
+    items = visible_staging(pid, args.capture_scope)
+    if items:
+        print("---- VISIBLE STAGING ----")
+        for f, meta, body in items:
+            print("## " + meta.get("id", "?") + " hint=" + meta.get("project_hint", "?") + " scope=" + meta.get("capture_scope", "?"))
+            print(body[:200]); print()
+    print("==== END BOOTSTRAP ====")
+
+
+def git_pull_ff():
+    r = git('pull', '--ff-only')
+    if r.returncode != 0:
+        sys.exit('[memory] ERROR: git pull --ff-only failed (worktree dirty or diverged). Resolve then retry checkpoint.')
+
+
+def checkpoint_id_marker(pid, checkpoint_id):
+    """幂等标记：存于项目本地未跟踪 sidecar（不写进 STATE，避免膨胀；可安全重建）。"""
+    marker_dir = ROOT / "projects" / pid / ".checkpoints"
+    marker_dir.mkdir(parents=True, exist_ok=True)
+    return marker_dir / (checkpoint_id.replace("/", "_").replace(":", "_") + ".txt")
+
+
+def cmd_checkpoint(args):
+    """R18/checkpoint 事务保存（GPT 评审 2026-08-15 推荐）：
+    secret preflight -> pull 最新 -> 幂等检查 -> write -> validate -> commit -> push。
+    push 被远端抢先时禁止用旧 STATE 重试：重新 pull 最新并重放。"""
+    # 1. secret preflight
+    hits = secret_hits(args.content)
+    if hits:
+        sys.exit("[memory] ERROR: credential-like content rejected in checkpoint: " + "; ".join(hits))
+    # 2. pull latest (fail closed)
+    git_pull_ff()
+    manifest = load_manifest()
+    pid, path = resolve_project(manifest, args.project)
+    if args.kind not in ("state", "decision"):
+        sys.exit("[memory] ERROR: checkpoint kind must be state|decision")
+    sid = args.sid
+    if not sid:
+        sid = next_memory_id(pid, args.kind)
+    # 3. idempotency: checkpoint-id already applied -> skip
+    if args.checkpoint_id:
+        marker = checkpoint_id_marker(pid, args.checkpoint_id)
+        if marker.exists():
+            print("[memory] checkpoint already applied (idempotent skip): " + args.checkpoint_id)
+            return
+    # 4. write entry
+    write_memory_entry(pid, args.kind, sid, args.content)
+    # 5. record idempotency marker AFTER successful write
+    if args.checkpoint_id:
+        marker = checkpoint_id_marker(pid, args.checkpoint_id)
+        marker.write_text("sid=" + sid + "\n" + "applied=" + str(datetime.now(timezone.utc).isoformat()) + "\n", encoding="utf-8")
+    # 6. commit + push (closed loop; R9 真源保存)
+    kinds = {"state": "STATE.md", "decision": "DECISIONS.md"}
+    target = ROOT / path / kinds[args.kind]
+    cl = ROOT / path / "CHANGELOG.md"
+    files = [str(target), str(cl)]
+    if args.checkpoint_id:
+        files.append(str(checkpoint_id_marker(pid, args.checkpoint_id)))
+    git('add', '--', *files)
+    c = git('commit', '-m', 'memory: checkpoint ' + sid + ' (' + pid + ')')
+    if c.returncode != 0:
+        err = (c.stderr or "").strip() + (c.stdout or "").strip()
+        if "nothing to commit" in err or "no changes added" in err:
+            print("[memory] checkpoint " + sid + ": nothing new to commit")
+        else:
+            sys.exit("[memory] ERROR: checkpoint commit failed: " + err)
+    pu = git('push')
+    if pu.returncode != 0:
+        # 远端前进：禁止 force；重新 pull 最新并重试 push（重放）
+        print("[memory] push rejected; re-pulling latest and retrying (no force)")
+        git_pull_ff()
+        pu2 = git('push')
+        if pu2.returncode != 0:
+            sys.exit("[memory] ERROR: checkpoint push failed after re-pull: " + pu2.stderr)
+    print("[memory] checkpoint " + sid + " (" + pid + ") saved + pushed")
+
+
 def cmd_register(args):
     manifest = load_manifest()
     pid = args.id
@@ -577,6 +699,8 @@ def main():
     rs = sub.add_parser("resolve"); rs.add_argument("--id", required=True); rs.add_argument("--project"); rs.add_argument("--basis"); rs.add_argument("--kind"); rs.add_argument("--candidate-project"); rs.add_argument("--reason", default=""); rs.add_argument("--covered-by"); rs.add_argument("--discard", action="store_true")
     stl = sub.add_parser("settle"); stl.add_argument("--project", required=True); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
     sy = sub.add_parser("sync"); sy.add_argument("--project", required=True); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
+    bt = sub.add_parser("bootstrap"); bt.add_argument("--project", required=True); bt.add_argument("--capture-scope")
+    cp = sub.add_parser("checkpoint"); cp.add_argument("--project", required=True); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
@@ -590,6 +714,8 @@ def main():
     elif args.cmd == "settle-plan": cmd_settle_plan(args)
     elif args.cmd == "resolve": cmd_resolve(args)
     elif args.cmd == "settle": cmd_settle(args)
+    elif args.cmd == "bootstrap": cmd_bootstrap(args)
+    elif args.cmd == "checkpoint": cmd_checkpoint(args)
 
 
 if __name__ == "__main__":

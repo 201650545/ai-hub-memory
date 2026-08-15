@@ -18,6 +18,7 @@ Memory = Global Kernel + Project Namespace + Layered Retrieval
 5. 无法唯一确定 → 拒绝读写，报告用户要求明确项目
 
 ## 读（R3/R4/R8）
+**入口（R18，2026-08-15 起）**：进入项目记忆线用 `python scripts/memory.py bootstrap --project <id>`——一次性注入 R18 Checkpoint 规则 + 项目 STATE/DECISIONS + 可见 staging + MEMORY_PROJECT_ID/MEMORY_CHECKPOINT_POLICY 绑定变量，替代分别 read RULES/STATE/DECISIONS。
 默认只读：global/RULES.md + global/DECISIONS.md + projects/<当前项目>/*
 跨项目读必须显式声明（LINKS.json / imports）——默认禁止。
 深度读取顺序（page fault）：STATE → DECISIONS → CHANGELOG → archive（archive 默认不可见）。
@@ -34,6 +35,7 @@ python scripts/memory.py route --project <id> --kind state|decision   # 查看�
 python scripts/memory.py read --project <id> --file state|decision|changelog
 python scripts/memory.py search --project <id> --query <关键词>
 python scripts/memory.py write --project <id> --kind state|decision --sid S-xxx --content <内容>
+python scripts/memory.py checkpoint --project <id> --kind state|decision --content <内容> [--checkpoint-id <session>:<turn>]  # R18：幂等保存 + 自动 commit/push（推荐日常自动保存用这个）
 python scripts/memory.py validate
 
 # 隔离记忆 staging（v2.1）

@@ -10,3 +10,4 @@
 - [D-20260814-01] 用户拍板 v2.1：隔离记忆机制（Quarantined Ingress），普通 Agent 不读全部 UNKNOWN，lazy daily consolidation 不建定时平台（2026-08-14）
 
 - [D-20260814-02] 用户原则：对话内容本身就是记忆，Agent 代表用户与外部 AI 对话并控制在 3 轮内定稿，不反复（2026-08-14）
+
