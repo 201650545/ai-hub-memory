@@ -104,7 +104,8 @@ def check_project_state_size(proj_dir):
         if s.startswith("## ") or s.startswith("# "):
             in_done = (s == "## 已完成（最近）")
             continue
-        if in_done and s.startswith("-"):
+        # 按 S/D-ID 条目计数（长条目内的 - 内容行不算新条目）
+        if in_done and (s.startswith("- **[S-") or s.startswith("- **[D-") or s.startswith("- [S-") or s.startswith("- [D-")):
             done_count += 1
     if done_count > 8:
         problems.append(rel + " 已完成（最近） has " + str(done_count) + " entries (> 8)")
