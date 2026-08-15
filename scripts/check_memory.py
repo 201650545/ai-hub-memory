@@ -49,7 +49,7 @@ def check_secrets(staged_names):
         if ".example" in low or "your-" in low or "xxx" in low:
             continue
         r = git("show", ":" + name)
-        if r.returncode != 0:
+        if r.returncode != 0 or r.stdout is None:
             continue
         for pat, desc in patterns:
             for m in re.finditer(pat, r.stdout, re.IGNORECASE):

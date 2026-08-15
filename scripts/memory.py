@@ -212,6 +212,19 @@ def cmd_route(args):
 
 def cmd_read(args):
     manifest = load_manifest()
+    # --file global: 读全局层，无需项目（协议第一层：未选项目也可读 global）
+    if args.file == "global":
+        for name in ("RULES.md", "PROJECTS.md", "DECISIONS.md", "TOOLS.md"):
+            gf = ROOT / "global" / name
+            if gf.exists():
+                print("## " + name)
+                print(gf.read_text(encoding="utf-8"))
+        return
+    # 项目级读必须有项目（协议第三层：未选项目时项目级数据 fail-closed）
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        print("NEXT_ACTION=SELECT_PROJECT")
+        sys.exit(2)
     pid, path = resolve_project(manifest, args.project)
     if args.file == "staging":
         # v2.1 R11: filtered staging read
@@ -259,6 +272,10 @@ def ensure_ff_pull():
                 + 'Resolve local changes / pull conflicts, then retry write. (R2 强制先 pull)')
 
 def cmd_write(args):
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        print("NEXT_ACTION=SELECT_PROJECT")
+        sys.exit(2)
     ensure_ff_pull()
     manifest = load_manifest()
     pid, path = resolve_project(manifest, args.project)
@@ -544,22 +561,59 @@ def cmd_sync_batch(args):
         write_memory_entry(pid, kind, sid, body)
         print('[memory] synced ' + f.name + ' -> ' + sid + ' (' + pid + '/' + kind + ')')
 
+def _bootstrap_protocol_header():
+    print("MEMORY_PROTOCOL=v1")
+    print("SOURCE_OF_TRUTH=github")
+
+
+def _bootstrap_project_list(manifest):
+    print("PROJECTS:")
+    for pid in sorted(manifest["projects"].keys()):
+        print("- " + pid)
+    print("- new-project")
+
+
+def _bootstrap_rules_summary():
+    print("RULES:")
+    print("- project memory is isolated")
+    print("- read/write only through memory.py")
+    print("- R17 project decisions take precedence")
+    print("- R18 memory checkpoint is enabled")
+    print("- credentials must never enter memory")
+
+
 def cmd_bootstrap(args):
-    """R18/checkpoint 注入入口（GPT 评审 2026-08-15 推荐）：Agent 进入项目记忆线的唯一入口。
-    固定返回：RULES 中的 Checkpoint 策略 + 项目 STATE + DECISIONS + 可见 staging + 绑定变量。
-    Agent 只跑 bootstrap，不必分别 read RULES/STATE/DECISIONS。"""
+    """协议入口（GPT 评审 2026-08-15 定稿）：Agent 进入记忆线的唯一入口。
+    无 --project → 输出协议状态 + 项目列表 + NEXT_ACTION=SELECT_PROJECT（固定首轮响应）。
+    有 --project → 输出 ACTIVE_PROJECT/ALLOWED_SCOPE + R18 规则 + 项目 STATE/DECISIONS + staging。"""
     manifest = load_manifest()
+    print("==== MEMORY_BOOTSTRAP ====")
+    _bootstrap_protocol_header()
+    if not args.project:
+        # 无项目模式：告诉 Agent 当前未选项目，只能读 global
+        print("ACTIVE_PROJECT=none")
+        print("ALLOWED_SCOPE=global")
+        _bootstrap_project_list(manifest)
+        _bootstrap_rules_summary()
+        print("NEXT_ACTION=SELECT_PROJECT")
+        print()
+        print("---- GLOBAL READ (PROJECTS/DECISIONS) ----")
+        for name in ("PROJECTS.md", "DECISIONS.md"):
+            gf = ROOT / "global" / name
+            if gf.exists():
+                print("## " + name)
+                print(gf.read_text(encoding="utf-8"))
+        print("==== END BOOTSTRAP ====")
+        return
     pid, path = resolve_project(manifest, args.project)
     rules_f = ROOT / "global" / "RULES.md"
-    print("==== MEMORY_BOOTSTRAP ====")
-    print("MEMORY_PROJECT_ID=" + pid)
+    print("ACTIVE_PROJECT=" + pid)
+    print("ALLOWED_SCOPE=global+" + pid)
     print("MEMORY_CHECKPOINT_POLICY=R18")
-    print("MEMORY_ROUTING=" + "explicit")
     print()
     if rules_f.exists():
         rules = rules_f.read_text(encoding="utf-8")
         print("---- GLOBAL RULES (Checkpoint policy) ----")
-        # 只输出 R18 及读写时机（不全文倾泻宪法）
         lines = rules.splitlines()
         emit = False
         for ln in lines:
@@ -569,7 +623,6 @@ def cmd_bootstrap(args):
                 emit = False
             if emit:
                 print(ln)
-        # 读写时机段
         in_timing = False
         for ln in lines:
             if ln.startswith("## 读写时机"):
@@ -595,6 +648,7 @@ def cmd_bootstrap(args):
         for f, meta, body in items:
             print("## " + meta.get("id", "?") + " hint=" + meta.get("project_hint", "?") + " scope=" + meta.get("capture_scope", "?"))
             print(body[:200]); print()
+    print("NEXT_ACTION=READY")
     print("==== END BOOTSTRAP ====")
 
 
@@ -615,6 +669,11 @@ def cmd_checkpoint(args):
     """R18/checkpoint 事务保存（GPT 评审 2026-08-15 推荐）：
     secret preflight -> pull 最新 -> 幂等检查 -> write -> validate -> commit -> push。
     push 被远端抢先时禁止用旧 STATE 重试：重新 pull 最新并重放。"""
+    # 0. 项目必填（协议第三层：未选项目时项目级写入 fail-closed）
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        print("NEXT_ACTION=SELECT_PROJECT")
+        sys.exit(2)
     # 1. secret preflight
     hits = secret_hits(args.content)
     if hits:
@@ -703,8 +762,8 @@ def main():
     rs = sub.add_parser("resolve"); rs.add_argument("--id", required=True); rs.add_argument("--project"); rs.add_argument("--basis"); rs.add_argument("--kind"); rs.add_argument("--candidate-project"); rs.add_argument("--reason", default=""); rs.add_argument("--covered-by"); rs.add_argument("--discard", action="store_true")
     stl = sub.add_parser("settle"); stl.add_argument("--project", required=True); stl.add_argument("--id", action="append"); stl.add_argument("--dry-run", action="store_true")
     sy = sub.add_parser("sync"); sy.add_argument("--project", required=True); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
-    bt = sub.add_parser("bootstrap"); bt.add_argument("--project", required=True); bt.add_argument("--capture-scope")
-    cp = sub.add_parser("checkpoint"); cp.add_argument("--project", required=True); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
+    bt = sub.add_parser("bootstrap"); bt.add_argument("--project"); bt.add_argument("--capture-scope")
+    cp = sub.add_parser("checkpoint"); cp.add_argument("--project"); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
