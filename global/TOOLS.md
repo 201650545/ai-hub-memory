@@ -82,6 +82,7 @@
 - 成功标准：health 返回引擎状态；stream/chat 返回内容。
 - STOP：health 超时/DOWN → 确认服务是否启动，不假装可用。
 - 状态：runtime volatile；服务定位见环境 bootstrap（不用绝对本机路径）。
+- **启动（2026-08-15 实测）**：python <search_gateway 目录>/unified_gateway.py（:3000；GATEWAY_PORT 覆盖端口）。DeepSeek key 从 DSH .env 读取（启动前注入 DEEPSEEK_API_KEY 环境变量即可）。当前：DeepSeek/Gemini/OpenRouter 三渠道 reachable（余额可见），元宝/豆包/Kimi/通义 4 引擎已绑定会话，转发已验证可用；Groq/硅基/通义 DashScope/智谱 4 渠道待填 key（网页渠道管理页填，或 config/channels.json）。搜索引擎走 GET /api/unified_stream?prompt= （SSE 并发）。
 
 ## 6. 夸克网盘列目录（qk-list）
 - 用途：列出夸克网盘根目录内容（官方 skill 只有语义搜索，无法列目录）。**根目录 100% 可靠；子目录导航不可用**（fid 会话级临时标识）。
