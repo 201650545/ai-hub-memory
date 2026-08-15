@@ -11,3 +11,6 @@ secrets/
 # Python 编译缓存
 __pycache__/
 *.pyc
+
+# 记忆项目切换 sidecar（本地状态，不入库）
+.memory-active-project
