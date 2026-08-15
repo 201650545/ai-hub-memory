@@ -54,7 +54,8 @@
 ### Kimi / Moonshot
 - 平台：platform.kimi.com（已从 moonshot.cn 迁新域名）｜ 模型：Kimi 系（含 K3 旗舰）
 - 额度：**可用余额 ¥15.00（赠送奖励金）**（2026-08-13 opencli 实测）；今日/总消费 ¥0；⚠️ 奖励金不能用于 Kimi K3 模型，需充值解锁
-- 访问：✅ **已登录**（opencli 实测）｜ 用途：长文本
+- 访问：✅ **已登录**（opencli 实测）｜ 用途：长文本；**问诊兜底渠道**（D-GLOBAL-20260815-04：GPT 镜像站不可用时转 Kimi K3）
+- 问诊操作：opencli 打开 kimi.com 官网，提问前开启 **K3 思考进阶模式**
 - 待确认：API key 是否存在
 
 ### OpenRouter
@@ -133,7 +134,7 @@
 - 待确认：免费额度轮次规则
 
 ### Claude Code
-- 额度：免费档（已确认）｜ 用途：编程 Agent
+- 额度：⚠️ **已用光**（2026-08-15 用户确认）；问诊/编程兜底不再走 Claude（改 Kimi K3，D-GLOBAL-20260815-04）｜ 用途：编程 Agent
 - 待确认：登录通道（Claude 订阅？）
 
 ### Cursor / Windsurf
@@ -182,7 +183,7 @@
 | 豆包 网页版 | 字节 | 免费档 | 通用/对话 |
 | 腾讯元宝 | 腾讯 | 免费档 | 通用/联网 |
 | ChatGPT web | OpenAI | 免费档（镜像站另有 Plus 多卡） | 海外最强通用 |
-| Claude web | Anthropic | 免费档 | 写作/编程 |
+| Claude web | Anthropic | ⚠️ 已用光（2026-08-15） | 写作/编程（兜底改 Kimi K3） |
 | 智谱清言 | 智谱 | 免费档 | 通用/中文 |
 | 文心一言 | 百度 | 免费档 | 通用/中文 |
 | 通义千问 | 阿里 | 免费档 | 通用/中文 |
@@ -326,7 +327,7 @@
 | 网站 | 登录方式 | 备注 |
 |---|---|---|
 | ChatGPT web | Google | ✅ |
-| Claude web | Google | ✅ |
+| Claude web | Google | ⚠️ 额度已用光（2026-08-15，不再作问诊兜底） |
 | Gemini | Google | ✅ |
 | Kimi (kimi.com / platform.kimi.com) | 微信/手机 | ✅ 余额 ¥15 赠送 |
 | 腾讯元宝 | 微信/QQ | ✅ 网关源 |

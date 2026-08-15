@@ -66,9 +66,10 @@ python scripts/memory.py resolve --id <I-ID> (--project <id> --basis ... | --can
 python scripts/memory.py settle --project <id> [--id <I-ID>] [--dry-run]
 ```
 
-## 问诊约定（D-GLOBAL-20260815-01）
-- 上游/resource/架构现象搞不定或自行尝试多次仍无把握 → 转 GPT 镜像站（Thinking·Extended）问诊；GPT 故障转 Claude（D-20260813-04）。
+## 问诊约定（D-GLOBAL-20260815-01 / D-GLOBAL-20260815-04）
+- 上游/resource/架构现象搞不定或自行尝试多次仍无把握 → 转 GPT 镜像站（Thinking·Extended）问诊；**GPT 不可用 → 转 Kimi K3 兜底**（kimi.com 官网，提问前开 K3 思考进阶模式；Claude 额度已用光，不再转 Claude，D-GLOBAL-20260815-04）。
 - 别埋头硬试：upstream 403/报错、免费档/价格、模型名/鉴权、厂商资源可用性等不确定判断，直接问最先进模型，用其结论复核再落地。
+- 问诊操作一律经 **opencli** 操控浏览器执行（GPT 镜像站见操作手册 01；Kimi K3 见 global/TOOLS.md §4）。
 
 ## 读写时机（原有协议保留）
 - 新项目单元开始：读 RULES + 本项目 STATE + 相关 DECISIONS（+ 本项目 staging）。
