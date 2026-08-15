@@ -617,11 +617,26 @@ def _git_sync_status():
     return commit, "current"
 
 
+def _active_project_file():
+    return ROOT / ".memory-active-project"
+
+
+def _check_switch(pid):
+    """项目切换检测（GPT 2026-08-15 建议）：bootstrap 到不同于上次的项目时，
+    提醒先对旧项目执行 checkpoint，避免丢失未保存状态。sidecar 不入库。"""
+    f = _active_project_file()
+    prev = f.read_text(encoding="utf-8").strip() if f.exists() else ""
+    if prev and prev != pid:
+        print("SWITCH_FROM=" + prev)
+        print("REMINDER=上次活动项目为 " + prev + "；若其中有未 checkpoint 的状态，请先对其执行 memory.py checkpoint 再继续本项目。")
+    f.write_text(pid + "\n", encoding="utf-8")
+
+
 def cmd_bootstrap(args):
     """协议入口（GPT 评审 2026-08-15 定稿）：Agent 进入记忆线的唯一入口。
     无 --project → 输出协议状态 + 项目列表 + NEXT_ACTION=SELECT_PROJECT（固定首轮响应）。
     有 --project → 输出 ACTIVE_PROJECT/ALLOWED_SCOPE + R18 规则 + 项目 STATE/DECISIONS + staging。
-    均返回 MEMORY_COMMIT + SYNC_STATUS（防基于旧 checkout 工作）。"""
+    均返回 MEMORY_COMMIT + SYNC_STATUS（防基于旧 checkout 工作）+ 项目切换提醒。"""
     manifest = load_manifest()
     print("==== MEMORY_BOOTSTRAP ====")
     _bootstrap_protocol_header()
@@ -650,6 +665,7 @@ def cmd_bootstrap(args):
         print("==== END BOOTSTRAP ====")
         return
     pid, path = resolve_project(manifest, args.project)
+    _check_switch(pid)
     rules_f = ROOT / "global" / "RULES.md"
     print("ACTIVE_PROJECT=" + pid)
     print("ALLOWED_SCOPE=global+" + pid)
@@ -748,6 +764,19 @@ def cmd_checkpoint(args):
     target = ROOT / path / kinds[args.kind]
     cl = ROOT / path / "CHANGELOG.md"
     files = [str(target), str(cl)]
+    # 6a. 并发写冲突检测（GPT 2026-08-15 建议）：除本项目写入文件外，
+    #     工作树还有未提交改动 = 可能其他 Agent 正在并发写，提醒但不阻止。
+    porc = git('status', '--porcelain')
+    others = []
+    if porc.returncode == 0:
+        my = {str(target), str(cl)}
+        for line in porc.stdout.splitlines():
+            p = line[3:].strip().strip('"')
+            full = (ROOT / p).resolve()
+            if str(full) not in my and "/.checkpoints/" not in p:
+                others.append(p)
+    if others:
+        print("[memory] WARN: 工作树存在非本 checkpoint 的未提交改动（可能并发写）: " + "; ".join(others[:5]))
     git('add', '--', *files)
     c = git('commit', '-m', 'memory: checkpoint ' + sid + ' (' + pid + ')')
     if c.returncode != 0:
@@ -759,11 +788,12 @@ def cmd_checkpoint(args):
     pu = git('push')
     if pu.returncode != 0:
         # 远端前进：禁止 force；重新 pull 最新并重试 push（重放）
-        print("[memory] push rejected; re-pulling latest and retrying (no force)")
+        print("[memory] CONFLICT: 远端有他人提交，正在重新 pull 并重放本次 checkpoint（不 force）")
         git_pull_ff()
         pu2 = git('push')
         if pu2.returncode != 0:
-            sys.exit("[memory] ERROR: checkpoint push failed after re-pull: " + pu2.stderr)
+            sys.exit("[memory] ERROR: CONFLICT 未自动解决，checkpoint push 仍失败（可能需手工 rebase 合并）。" + pu2.stderr)
+        print("[memory] CONFLICT resolved: 已基于最新记忆重放并 push 成功")
     print("[memory] checkpoint " + sid + " (" + pid + ") saved + pushed")
 
 
