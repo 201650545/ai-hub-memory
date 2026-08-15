@@ -8,6 +8,7 @@
 | english-teaching（英语教学） | projects/english-teaching | 进行中：无 |
 | english-learning（英语学习） | projects/english-learning | 进行中：无 |
 | devel-tools（工具链/DSH 开发） | projects/devel-tools | 进行中：无 |
+| nitian-theme（逆天主题） | projects/nitian-theme | 进行中：无 |
 | teaching（教学） | projects/teaching | 进行中：无 |
 | courseware（课件） | projects/courseware | 进行中：无 |
 | memory-system（记忆系统） | projects/memory-system | 进行中：v2 升级落地 |

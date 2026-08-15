@@ -75,6 +75,17 @@
       ],
       "path": "projects/devel-tools",
       "imports": []
+    },
+    "nitian-theme": {
+      "aliases": [
+        "仙逆",
+        "王林",
+        "DSH皮肤",
+        "DSH主题",
+        "逆天"
+      ],
+      "path": "projects/nitian-theme",
+      "imports": []
     }
   }
 }
