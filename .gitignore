@@ -7,3 +7,7 @@ secrets/
 
 # R18 checkpoint 幂等标记（本地状态，不共享）
 **/.checkpoints/
+
+# Python 编译缓存
+__pycache__/
+*.pyc
