@@ -4,6 +4,7 @@
 - 无。
 
 ## 已完成（最近）
+- **[S-20260815-05]** R18 checkpoint 全链路最终验证（S-20260815-10）（2026-08-15）
 ## 已完成（最近）
 - **[S-20260815-04]** R18 Memory Checkpoint 落地（2026-08-15，GPT 评审定稿）：RULES.md 加 R18（事件优先+10 用户回合 watchdog），AGENTS.md/SKILL.md 同步引用，memory.py 新增 bootstrap（唯一入口注入规则+上下文）与 checkpoint（幂等保存+自动 commit/push）命令。（2026-08-15）
 - **[S-20260815-03]** 换 Agent 无缝衔接的交接消息模板（用户 2026-08-15 定稿；完整流程见 ai-hub-memory/docs/Agent记忆上报指令.md 的「指令正文」）。交接时把下面整段发给当前 Agent：当前阶段已完成，请做好收尾交接：1) 读取 ai-hub-memory/docs/Agent记忆上报指令.md 的「指令正文」照着做，把本项目阶段成果整理成记忆写入共享记忆仓库(ai-hub-memory)；2) 关键动作：git pull --ff-only；判断归属（已注册项目 teaching/courseware/memory-system/english-teaching/english-learning/devel-tools 直接写，全新项目用 register，拿不准用 capture，清单以 MEMORY.json 为准）；python scripts/memory.py write --project 项目id --kind state --sid S-日期-序号 --content 交接内容(做了什么/验收/下一步/遗留)；python scripts/memory.py validate；git add -A && git commit -m memory-项目名-阶段交接 && git push；3) 回报项目 id + SID + 是否已 push。凭证绝不写入记忆；pre-commit 拦截按提示修复，禁 --no-verify。（2026-08-15）
