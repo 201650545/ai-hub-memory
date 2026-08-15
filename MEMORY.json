@@ -43,6 +43,16 @@
       ],
       "path": "projects/memory-system",
       "imports": []
+    },
+    "english-teaching": {
+      "aliases": [
+        "黄浩昀",
+        "邓兴华",
+        "许颖嘉",
+        "李民宪"
+      ],
+      "path": "projects/english-teaching",
+      "imports": []
     }
   }
 }
