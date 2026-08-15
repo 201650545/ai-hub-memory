@@ -64,6 +64,10 @@ python scripts/memory.py resolve --id <I-ID> (--project <id> --basis ... | --can
 python scripts/memory.py settle --project <id> [--id <I-ID>] [--dry-run]
 ```
 
+## 问诊约定（D-GLOBAL-20260815-01）
+- 上游/resource/架构现象搞不定或自行尝试多次仍无把握 → 转 GPT 镜像站（Thinking·Extended）问诊；GPT 故障转 Claude（D-20260813-04）。
+- 别埋头硬试：upstream 403/报错、免费档/价格、模型名/鉴权、厂商资源可用性等不确定判断，直接问最先进模型，用其结论复核再落地。
+
 ## 读写时机（原有协议保留）
 - 新项目单元开始：读 RULES + 本项目 STATE + 相关 DECISIONS（+ 本项目 staging）。
 - 可交付单元完成：正式记忆走 memory.py write；未定项目/会话中候选事实走 memory.py capture。

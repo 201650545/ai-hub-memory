@@ -2,6 +2,9 @@
 
 > 只追加。这里只放「删除任何一个项目后依然成立」的决策。项目专属决策在各项目的 DECISIONS.md。
 
+## 2026-08-15
+- [D-GLOBAL-20260815-01] **自有知识解决不了 → 转问 GPT**：当 Agent 对上游行为/资源/架构/外部服务现象判断不定、或已自行尝试多次仍无把握时，不要埋头硬试，转 GPT 镜像站（Thinking·Extended）问诊。典型场景：upstream 403/报错、免费档/价格判断、模型名/鉴权方式、某厂商资源的可用性确认。GPT 镜像站故障时转 Claude 兜底（沿用 D-20260813-04）。
+
 ## 2026-08-14
 - [D-GLOBAL-20260814-01] 记忆系统 v2 = **项目作用域隔离 + 分层记忆 + Routing-before-Retrieval + Fail-Closed**（三方交叉定稿：AI 搜索网关 + Claude Sonnet5 + GPT-5.6 Extended）。核心公式：Memory = Global Kernel + Project Namespace + Layered Retrieval；Multi-read / Single-write；scope 不明确拒绝读写。落地：MEMORY.json + memory.py + memory-router/SKILL.md。
 

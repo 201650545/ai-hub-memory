@@ -1,3 +1,5 @@
+## 2026-08-15
+- D-GLOBAL-20260815-01 新增：**自有知识解决不了 → 转问 GPT**（用户拍板）：Agent 对上游行为/资源/架构判断不定或自行试多次仍无把握时，转 GPT 镜像站 Thinking·Extended 问诊，故障转 Claude。落档 global/DECISIONS.md + global/RULES.md「问诊约定」。触发：API 集中转发任务中 UA 403/模型名/免费档判断靠埋头硬试耗时，GPT 一次给出完整方案（余额预检+熔断+免费渠道清单），印证该纪律价值。
 # CHANGELOG.md — 操作记录（只追加）
 
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
