@@ -5,6 +5,7 @@
 ## 2026-08-14
 - [归档] DROP S-20260814-01 — 记忆系统 v2 升级完成，滚出「已完成」8 条窗口。
 - [归档] DROP S-20260814-09 — 记忆守卫落地完成，滚出「已完成」8 条窗口。
+- v4 Flash：落地 GLM 审查 9 条建议（按用户批准）——R2 write/settle 内置强制 git pull --ff-only（Fail-Closed 同构）✓ R3 RESOURCES.md 头部指针化声明（额度数值真源归 ai-resource-hub）✓ R5 PROJECTS 路由补 courseware 行 + teaching/courseware↔english-teaching 映射 ✓ R6 AGENTS/TOOLS 端口路径改指针 ✓ R7 RULES 加 R17 决策优先级 ✓ R8 status 加 inbox 超阈值停留提醒 ✓ R9 TOOLS 加公开数据消费规范 ✓ R1/R4 调度器落位约定 + 数据桥收敛待办记录。push `eb9ae94`。
 - v4 Flash：GLM5.3 架构审查报告落档（Trae 侧执行，实核本地仓库）——总评「方向正确不需重构，问题在重不在缺」；4 实质问题：F1 双管道（exporter vs feishu-data-hub）/ F2 资源台账双真源（RESOURCES.md 额度快照）/ F3 并发写防护未下沉脚本 / 决策优先级缺失；9 条建议 R1-R9（P0：write/settle 内置强制 pull + RESOURCES 指针化 + 数据桥收敛；P1：路由表补全 + TOOLS 去快照化 + 决策优先级；P2：调度器落位约定 + status 提醒 + 消费规范）。落档 ai-resource-hub `fc168f4`。**3 决策点待用户拍板**（数据桥收敛方向 / RESOURCES 指针化 / 调度器 M1 落位）。
 - v4 Flash：GPT 审查 PROJECTS 全景方案（实读确认）→ 采纳 5 分法（RULES=MUST/PROJECTS=WHERE/RESOURCES=WHAT/TOOLS=HOW/STATE=NOW）+ PROJECTS 瘦身为纯路由图（29 行，删状态/版本/端口）+ RULES 补跨仓库 registry 例外；拍板 3 点（例外/global_read 保留/删状态字段）落地 push `1dfda9b`。落档 ai-resource-hub `464a5ac`。
 - v4 Flash：新增 `global/PROJECTS.md` 项目全景（5 GitHub 仓库完整介绍：ai-hub-memory/ai-resource-hub/ai-hub/feishu-data-hub/english-teaching-production + 关系图 + Agent 提示）——**进入记忆常读层**（MEMORY.json global_read + 根 STATE 导航 + AGENTS 读清单），任何 Agent 读记忆即懂全局，无需翻各仓库。push `165b3e2`。
