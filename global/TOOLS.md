@@ -90,6 +90,7 @@
   - **再增渠道（2026-08-16）**：agnes（AGNES AI apihub.agnes-ai.com/v1，agnes-2.5-flash 等）与 zscc（api.zscc.in，kimi-k3-cc/claude-opus-4-8/claude-sonnet-5/deepseek-v4-flash-cc），key 均取自 Cherry Studio。坑：zscc 根路径是网页，OpenAI 兼容必须在 /v1（base_url 需含 /v1），/models 也走 /v1/models（渠道级 models_path 字段）；agnes-* 模型路由优先 agnes（勿写成 zscc 优先）。
   - **ZSCC 禁测（用户 2026-08-16 拍板）**：zscc 渠道很贵，禁止任何测试/探测请求。代码已固化：channels.py 的 NO_TEST_CHANNELS={"zscc"}（健康检查不探测、静态标记可达）；api_gateway /api/channels/zscc/test 拦截返回 no_test；页面快速测试列表自动排除 zscc。以后任何 Agent 不得对 zscc 发起 chat/completions 测试。
   - **模型反查功能（2026-08-16）**：channels.py 新增 all_models()（聚合所有在线渠道模型去重）、model_providers(model)（包含搜索反查支持某模型的所有渠道）、_channel_sort_key()（排序键：免费优先→速度快优先→渠道顺序）。每个渠道加 speed 字段（fast/medium/slow）。api_gateway 新增 /api/models、/api/model_providers?model=xxx 端点。前端重新设计为苹果官网风格（浅色+SF Pro+大圆角），核心功能：搜索模型→自动反查所有支持它的 API 提供商→按免费/速度智能排序展示。
+  - **Gemini 多模态接入（2026-08-16）**：Google 被墙需走本机 mihomo 代理 127.0.0.1:7890（Sparkle/Clash 内核，间歇不稳约 80% 成功率）。channels.py 新增 _urlopen/_build_opener 代理辅助 + gemini 渠道配 proxy 字段，chat_completion/channel_health 走代理。key 取自 Cherry Studio（AIzaSy...）。gemini-3.5-flash/flash-latest/3.1-flash-lite 支持多模态图像理解（已 E2E 验证识别颜色）；gemini-3.1-flash-image 是图像生成模型，免费配额 429 已剔除。当前支持多模态的渠道：gemini。
   - 旧 unified_gateway.py（合并版）已废弃不再启动。
   - **中央平台网关管理与首页（2026-08-16）**：config/gateways.json 注册表已更新为拆分后的两个网关（search_gateway :3000 + api_gateway :3100）。两网关启动时经 services/search_gateway/heartbeat.py 自动注册（POST /api/gateways）+ 每 30s 心跳上报 central :8000，中央首页 / 与 dashboard 实时显示在线状态。心跳失败静默降级不阻塞网关；CENTRAL_URL 可关（空串）。
 
