@@ -87,6 +87,7 @@
   - API 转发网关：python <search_gateway 目录>/api_gateway.py（:3100；API_GATEWAY_PORT 覆盖）。OpenAI 兼容 /v1/chat/completions + /api/channels（key 管理）。渠道顺序 CHANNEL_ORDER：opencode(OpenCode Go, 用户 2026-08-15 提供, key 存 data/search_gateway/channels.json)→deepseek→gemini→openrouter→groq→siliconflow→dashscope→zhipu。DeepSeek key 从 DSH .env 注入 DEEPSEEK_API_KEY。
   - **OpenCode Go 渠道已验证可用（2026-08-15）**：base_url https://opencode.ai/zen/go/v1，模型 deepseek-v4-flash 转发 200（含 reasoning_content）；stream 正常结束。**关键坑**：opencode 由 Cloudflare 保护，默认 python UA 直接 403（error 1010，按浏览器签名封禁）；请求必须带 User-Agent: openai-completions/pi-ai（channels.py 中 opencode 条目 ua 字段已配置，chat_completion/_get_json 均使用渠道 UA）。另：model_to_chain 中 deepseek-* 模型首选 opencode、fallback deepseek；流式转发检测到 [DONE] 即结束连接，避免上游 keep-alive 挂起。reasoning_effort 非必需（纯 UA 修复即可 200）。
   - 旧 unified_gateway.py（合并版）已废弃不再启动。
+  - **中央平台网关管理与首页（2026-08-16）**：config/gateways.json 注册表已更新为拆分后的两个网关（search_gateway :3000 + api_gateway :3100）。两网关启动时经 services/search_gateway/heartbeat.py 自动注册（POST /api/gateways）+ 每 30s 心跳上报 central :8000，中央首页 / 与 dashboard 实时显示在线状态。心跳失败静默降级不阻塞网关；CENTRAL_URL 可关（空串）。
 
 ## 6. 夸克网盘列目录（qk-list）
 - 用途：列出夸克网盘根目录内容（官方 skill 只有语义搜索，无法列目录）。**根目录 100% 可靠；子目录导航不可用**（fid 会话级临时标识）。
