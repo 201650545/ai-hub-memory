@@ -11,7 +11,7 @@
 | nitian-theme（逆天主题） | projects/nitian-theme | 进行中：无 |
 | teaching（教学） | projects/teaching | 进行中：无 |
 | courseware（课件） | projects/courseware | 进行中：无 |
-| memory-system（记忆系统） | projects/memory-system | 进行中：v2 升级落地 |
+| memory-system（记忆系统） | projects/memory-system | 已完成：v2.1 已落地 |
 
 ## 路由表
 见 MEMORY.json（aliases：教学/课程/教案、课件/PPT/slides、记忆系统/memory）。

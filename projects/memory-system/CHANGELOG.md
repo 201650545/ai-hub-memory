@@ -4,6 +4,13 @@
 
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
+## 2026-08-21
+- [归档] DROP S-20260814-19 — 记忆系统 v2.1 升级完成（S-20260814-21 已确认 v2.1 落地），"进行中"→"已完成"。
+- [归档] DROP S-20260814-17 — 落地记忆系统 v2.1 全部 6 项优先级已由 S-20260814-21 完成，从"下一步"移除。
+- [归档] DROP S-20260814-13 — 记忆生命周期方案落地，滚出「已完成」8 条窗口。
+- [归档] DROP S-20260814-11 — 记忆膨胀/精简问诊（实读版），滚出「已完成」8 条窗口。
+- DeepSeek Harness Agent：验证 v2.1 全部组件已落地——MEMORY.json v2.1 ✓ / memory.py 5 新命令 ✓ / inbox/ ✓ / RULES 16 宪法 ✓ / SKILL.md ✓ / check_memory.py ✓ / rotate_memory.py ✓ / 验收测试通过 ✓。唯一缺失：pre-commit hook 未安装（脚本存在但 .git/hooks/pre-commit 是 .sample）。已安装 pre-commit hook（链接 check_memory.py）。更新 memory-system STATE.md 消除"进行中"与"已完成"的矛盾。
+
 ## 2026-08-14
 - [归档] DROP S-20260814-01 — 记忆系统 v2 升级完成，滚出「已完成」8 条窗口。
 - [归档] DROP S-20260814-09 — 记忆守卫落地完成，滚出「已完成」8 条窗口。
