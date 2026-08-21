@@ -67,6 +67,7 @@
   - 界面形态（textarea vs contenteditable）随版本变 → 按页面实际适配；
   - Windows 长文本 → base64 + eval 注入，勿直接 CLI 传参；
   - 多链接提示词可能触发 Deep Research 空回复 → 单链接/内嵌版，或转 Kimi K3 兜底（Claude 已停用，见下）。
+  - **切换 Extended（2026-08-21 实测）**：模型下拉是**自定义 Radix Select**，菜单项不暴露独立按钮索引，整段正则匹配会点中容器 DIV 导致失败；正确做法：先点开右下角「Auto」选择器（aria-haspopup=menu），再用 `document.querySelector('[class*=model-picker-thinking-effort-menu-item]').click()` 精确命中「Thinking · Extended」项（其内层 SPAN class 类似 `flex min-w-0 items-center gap-1`）。提交后务必重新抓取最后一轮（`[data-testid^=conversation-turn-]` 取 last.innerText），避免混用历史会话旧文本。
 - **会话纪律（用户拍板 2026-08-15，强制）**：① 进入镜像站后**复用左侧历史会话**（点历史记录进入，不新开对话），再调模型为 Thinking·Extended；② **每个问题 ≤3 轮对答**解决（含 GPT 反问的交流，3 轮内必须解决回来执行）；③ **每窗口 ≤42 轮**，超了必须新开对话（新开后重新选模型）。详细步骤见 ai-resource-hub 操作手册 01 §9。
 - **Kimi K3 兜底（2026-08-15 起，D-GLOBAL-20260815-04）**：Claude 额度已用光，问诊兜底不再走 Claude。GPT 镜像站不可用/空回复/需第二意见时 → `opencli browser <s> open kimi.com`，提问前先开启 **K3 思考进阶模式**（界面找 K3 模型/进阶模式开关），再发送问题；长提示词同样 base64 + eval 注入。
 
