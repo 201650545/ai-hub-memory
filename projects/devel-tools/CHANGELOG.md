@@ -19,3 +19,4 @@
 - S-20260825-05 DSH 选择器只显示网关统一编排模型（用户拍板：非 30 模型全清单，只要编排组，且要自动同步）。①web profil（2026-08-25，脚本自动记录）
 - S-20260825-06 API网关新增火山方舟渠道+生图端点（2026-08-25，用户提供 ARK key 存 channels.json 信（2026-08-25，脚本自动记录）
 - S-20260825-07 方舟开通管理额度实查+Seedream5.0首图验证（2026-08-25，kimi-webbridge 操控用户真实 （2026-08-25，脚本自动记录）
+- S-20260826-01 DSH web_search 接入 :3000 AI 搜索网关（hub-web-search 插件 + /api/search_json + patch 层 searchProvider=hub）；修三层 60s 超时源（base bundle/3 个 agent 预设/profile patch → 180s，聚合单次 60-155s）；provider 注册键缺失修复；:3100 渠道限流台账上线（记录阶段，GET /api/rate-limits）。E2E 通过：kimi+千问双引擎返回带来源，生产 :3080 冒烟通过。（2026-08-26，Claude 会话）
