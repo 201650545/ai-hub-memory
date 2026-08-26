@@ -86,6 +86,18 @@
       ],
       "path": "projects/nitian-theme",
       "imports": []
+    },
+    "ai-resources": {
+      "aliases": [
+        "AI资源",
+        "免费额度",
+        "视频平台",
+        "资源测试",
+        "resource",
+        "额度实测"
+      ],
+      "path": "projects/ai-resources",
+      "imports": []
     }
   }
 }
