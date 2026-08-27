@@ -11,6 +11,7 @@
 | 飞书表/文档/Bot | lark-cli | 认证状态检查 | §3 |
 | 操作已登录网页/AI 引擎 | opencli | opencli doctor | §4 |
 | 多引擎 AI 搜索/LLM 聚合 | 网关 :3000 | health check | §5 |
+| OpenAI API 模型路由 | 网关 :3100 | GET /v1/models + /api/rate-limits | §6.6 |
 | 夸克网盘列目录 | qk-list.cjs | node --check + 凭证存在 | §6 |
 
 ## 1. 首次使用检查（弱模型也照做）
@@ -120,6 +121,32 @@
 - 读取 GitHub Pages 公开 JSON（ai-resource-hub / feishu-data-hub）前，**先读 catalog/status**。
 - `is_stale=true` 时**回退飞书真源或提示用户**，不用陈旧数据决策。
 - 新鲜度：数据生成时间 vs 当前时间，超阈值视为 stale。
+
+## 6.6 OpenAI API 模型路由网关（:3100）
+- 用途：OpenAI-compatible LLM 路由网关（多厂商聚合 + 自动 fallback），与 :3000 AI 搜索网关**相互独立**。
+- 入口：`http://127.0.0.1:3100`（API_GATEWAY_PORT 覆盖）。
+- 关键文件（services/search_gateway/）：
+  - `api_gateway.py`：HTTP 服务 + 路由/failover 编排
+  - `channels.py`：渠道层、key 池轮换、健康缓存
+  - `rate_limit.py`：容量准入（try_acquire）+ 429/空壳熔断
+  - `quota.py`：本地额度统计（独立于 :3000 记账）
+- 配置（data/search_gateway/）：`unified_models.json`（统一模型组）、`routing.json`（用户手工渠道顺序）、`channels.json`（渠道 key）。
+- 主要机制：统一模型 → 用户人工渠道顺序 → health eligibility → rate-limit eligibility（try_acquire 95/85 滞后）→ upstream attempt → failover（HTTP 429 / 200+quota 空壳 / blocked 本地 skip）。
+- Preflight：
+  ```bash
+  # 1. 进程在跑
+  Get-NetTCPConnection -LocalPort 3100 -State Listen
+  # 2. 模型列表
+  curl http://127.0.0.1:3100/v1/models
+  # 3. 健康 + 限流台账
+  curl http://127.0.0.1:3100/api/health
+  curl http://127.0.0.1:3100/api/rate-limits
+  # 4. 最近路由决策日志
+  curl http://127.0.0.1:3100/api/route-log
+  ```
+- STOP：runtime SHA 与文档不一致时先核代码；**UNKNOWN != READY**。
+- 注意：动态资源状态（某渠道剩余额度/是否 503/今日 429）不属于 TOOLS，现场查 `/api/health`、`/api/rate-limits`、`/api/route-log`。
+- 基线：Phase 0 冻结于 refactor/monorepo-20260812 @ `gateway-baseline-20260827`（见 projects/devel-tools/STATE.md）。
 
 ## 7. 通用安全红线
 TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间接恢复认证的材料**。禁止：
