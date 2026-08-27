@@ -129,9 +129,11 @@
   - `api_gateway.py`：HTTP 服务 + 路由/failover 编排
   - `channels.py`：渠道层、key 池轮换、健康缓存
   - `rate_limit.py`：容量准入（try_acquire）+ 429/空壳熔断
+  - `upstream_outcome.py`：失败归一化（Phase 1）—— 上游错误统一为 Outcome 枚举（SUCCESS/RATE_LIMIT/QUOTA/AUTH/MODEL_UNAVAILABLE/OVERLOADED/PROTOCOL_ERROR/TIMEOUT），`classify_http_status`/`classify_shell` 归一化、`is_breaker` 判定熔断类型
   - `quota.py`：本地额度统计（独立于 :3000 记账）
 - 配置（data/search_gateway/）：`unified_models.json`（统一模型组）、`routing.json`（用户手工渠道顺序）、`channels.json`（渠道 key）。
-- 主要机制：统一模型 → 用户人工渠道顺序 → health eligibility → rate-limit eligibility（try_acquire 95/85 滞后）→ upstream attempt → failover（HTTP 429 / 200+quota 空壳 / blocked 本地 skip）。
+- 主要机制：统一模型 → 用户人工渠道顺序 → health eligibility → rate-limit eligibility（try_acquire 95/85 滞后）→ upstream attempt → **失败归一化（upstream_outcome）** → failover（HTTP 429 / 200+quota 空壳 / timeout / 503 / blocked 本地 skip）。熔断类型（RATE_LIMIT/QUOTA/AUTH/OVERLOADED）触发指数退避跳过。
+- **流式 commit point（Phase 1 不变量）**：failover 只允许发生在 response commit 前——首包验证（_peek_stream）通过即视为已提交，此后不得换上游继续输出，避免客户端收到多模型拼接。
 - Preflight：
   ```bash
   # 1. 进程在跑
@@ -143,10 +145,12 @@
   curl http://127.0.0.1:3100/api/rate-limits
   # 4. 最近路由决策日志
   curl http://127.0.0.1:3100/api/route-log
+  # 5. 路由可观测（Phase 1）：候选渠道链 + 每渠道 eligible/reason/state/blocked_in
+  curl http://127.0.0.1:3100/api/route-plan?model=<统一模型名>
   ```
 - STOP：runtime SHA 与文档不一致时先核代码；**UNKNOWN != READY**。
-- 注意：动态资源状态（某渠道剩余额度/是否 503/今日 429）不属于 TOOLS，现场查 `/api/health`、`/api/rate-limits`、`/api/route-log`。
-- 基线：Phase 0 冻结于 refactor/monorepo-20260812 @ `gateway-baseline-20260827`（见 projects/devel-tools/STATE.md）。
+- 注意：动态资源状态（某渠道剩余额度/是否 503/今日 429）不属于 TOOLS，现场查 `/api/health`、`/api/rate-limits`、`/api/route-log`、`/api/route-plan`。
+- 基线：Phase 0 冻结于 refactor/monorepo-20260812 @ `gateway-baseline-20260827`；Phase 1（失败归一化 + route-plan 可观测 + commit point + 8-case 回归）完成于 2026-08-27（见 projects/devel-tools/STATE.md）。
 
 ## 7. 通用安全红线
 TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间接恢复认证的材料**。禁止：

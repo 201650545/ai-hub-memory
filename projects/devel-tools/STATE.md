@@ -4,6 +4,15 @@
 - 无。
 
 ## 已完成（最近）
+- **[S-20260827-06]** :3100 网关 Phase 1 交接（2026-08-27，GPT 评审未完成即转交）：已完成=①upstream_outcome.py 失败归一化（Outcome 枚举+classify_http_status/classify_shell/is_breaker）②route_completion 接入+失败聚合 ③/api/route-plan 可观测接口 ④流式 commit point 不变量 ⑤8-case failover 回归 ALL PASS（脚本 D:\游戏\_隔离\phase1_failover_test.py）⑥文档已更新 TOOLS.md§6.6+STATE S-20260827-05。待办=①D:\项目 ai-hub 工作区未提交（api_gateway.py 改+upstream_outcome.py 新增，branch refactor/monorepo-20260812）②GPT 镜像 Extended 评审未完成：镜像会话 n8hh7hyn 被小红书任务反复切走+9 分钟无回复，提示词 D:\游戏\_隔离\gpt_phase1_prompt.md，旧 Auto 回复在 D:\游戏\AI-Hub网关第1阶段GPT评审_2026-08-27.md（无效需 Extended 重发）③网关运行进程 PID32912 仍为 Phase 0 旧代码，重启前先杀旧进程。用户要求：每阶段完成必须用 Thinking·Extended 模式找镜像 GPT 评审。（2026-08-27）
+- **[S-20260827-05]** :3100 网关 Phase 1 完成（2026-08-27，GPT 问诊 P0/P1 落地，基于 gateway-baseline-20260827）：
+  - 失败归一化：新增 `upstream_outcome.py`，上游错误统一为 Outcome 枚举（SUCCESS/RATE_LIMIT/QUOTA/AUTH/MODEL_UNAVAILABLE/OVERLOADED/PROTOCOL_ERROR/TIMEOUT）；`classify_http_status` 映射 HTTP 状态码（429→RATE_LIMIT、503→OVERLOADED 等）、`classify_shell` 检测 200+错误载荷空壳、`is_breaker` 判定熔断类型（RATE_LIMIT/QUOTA/AUTH/OVERLOADED 触发指数退避）
+  - 接入 route_completion：shell 合成 429 升级为归一化 failure type + failures 聚合（failure 带 channel/outcome/detail，替代原只有 channel 的失败列表）
+  - 路由可观测：新增 `GET /api/route-plan?model=`，返回候选渠道链 + 每渠道 eligible/reason/used_1m/limit_1m/state/blocked_in，解决"为何未走预期渠道"排障
+  - 流式 commit point 不变量：failover 仅限 response commit 前（首包 _peek_stream 通过即 commit，此后不得换上游），避免多模型拼接
+  - 回归验证：8-case failover 矩阵 ALL PASS（正常/HTTP429/200+quota shell/timeout/503/blocked 本地 skip/blocked 恢复/10 并发 95% 穿透仅放行 1）——测试脚本 `D:\游戏\_隔离\phase1_failover_test.py`
+  - 未改动：unified_models / routing / rate_limit 既有模块（复用 try_acquire/record_result）
+  - 遗留（Phase 1 范围外）：capability-aware routing（tools/MCP 断链，P1.5）、CC Switch 接 Claude Code（P2）、飞书资源物化（P3）
 - **[S-20260827-04]** :3100 网关基线冻结（Phase 0，2026-08-27，GPT 第0阶段方案执行）：
   - canonical branch / SHA = refactor/monorepo-20260812 @ 8ec04de1f1e0a09c68668858ea79f34b22bf741e（tag: gateway-baseline-20260827）
   - runtime 进程 = PID 32912 → D:\项目\services\search_gateway\api_gateway.py（与 canonical 一致，工作树干净）
