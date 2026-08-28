@@ -1,0 +1,11 @@
+{
+  "schema": "settlement-receipt-v1",
+  "id": "I-20260829T000000-HANDOFF",
+  "settled_at": "2026-08-28T17:34:04.222618+00:00",
+  "disposition": "covered",
+  "capture_scope": "handoff",
+  "original_project_hint": "ai-resources",
+  "final_project": "ai-resources",
+  "target_id": "S-20260828-01",
+  "reason": "3 项核查完成并回写飞书 Base，结论见 ai-resources S-20260828-01"
+}
