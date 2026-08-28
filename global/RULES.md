@@ -70,6 +70,8 @@ python scripts/memory.py settle --project <id> [--id <I-ID>] [--dry-run]
 - 上游/resource/架构现象搞不定或自行尝试多次仍无把握 → 转 GPT 镜像站（Thinking·Extended）问诊；**GPT 不可用 → 转 Kimi K3 兜底**（kimi.com 官网，提问前开 K3 思考进阶模式；Claude 额度已用光，不再转 Claude，D-GLOBAL-20260815-04）。
 - 别埋头硬试：upstream 403/报错、免费档/价格、模型名/鉴权、厂商资源可用性等不确定判断，直接问最先进模型，用其结论复核再落地。
 - 问诊操作一律经 **opencli** 操控浏览器执行（GPT 镜像站见操作手册 01；Kimi K3 见 global/TOOLS.md §4）。
+- **问诊同频与实读证明（用户拍板 2026-08-27，强制）**：每完成一次镜像 GPT 问诊，必须先把本轮结论/状态变更 commit + push 到 GitHub 记忆仓库，再发起下一轮问诊——让 GPT 与仓库始终同频。问诊包必须明确要求 GPT **先读仓库真实内容**，并埋一个**只有实际读取该文件才能获得、无法从对话上下文猜出的核验令牌**，要求 GPT 在回复开头原文引用；引用不出即判定未实读，本轮问诊作废重问（或按上一条转 Kimi K3 兜底）。
+- **CC Switch Takeover 边界（D-GLOBAL-20260828-02）**：在已验证的 CC Switch v3.14.1 中，启用本地 proxy 必须视为**会修改 Claude Code 全局配置并接管其出口**的操作。未经用户明确授权修改当前 Claude Code 链路，不得 enable/re-enable proxy；`live_takeover_active=0` **不得**作为"未接管"的判断依据。任何获批的 takeover 必须先保存可验证回退基线（settings SHA + provider 现状 + 代理状态 + 被改动配额原值），并在临时任务结束后恢复原态，或另行取得永久切流授权。
 
 ## 读写时机（原有协议保留）
 - 新项目单元开始：读 RULES + 本项目 STATE + 相关 DECISIONS（+ 本项目 staging）。

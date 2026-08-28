@@ -153,6 +153,14 @@
 - 注意：动态资源状态（某渠道剩余额度/是否 503/今日 429）不属于 TOOLS，现场查 `/api/health`、`/api/rate-limits`、`/api/route-log`、`/api/route-plan`。
 - 基线：Phase 0 冻结于 refactor/monorepo-20260812 @ `gateway-baseline-20260827`；Phase 1（失败归一化 + route-plan 可观测 + commit point + 8-case 回归）完成于 2026-08-27（见 projects/devel-tools/STATE.md）。
 
+## 6.7 CC Switch 本地代理（Claude Code 出口）
+
+- **CC Switch v3.14.1 已知行为（2026-08-27 实测）**：开启 local proxy 会把 `~/.claude/settings.json` 的 `ANTHROPIC_BASE_URL` 指向本地 proxy（默认 `127.0.0.1:15721`），并可能重写 `ANTHROPIC_*_MODEL` 为 Claude 官方别名（`claude-opus-4-8` / `claude-sonnet-4-6` / `claude-haiku-4-5` / `claude-fable-5`）；原 provider 模型信息会被移到对应 `*_MODEL_NAME` 字段。`proxy_live_backup` 表可用于恢复开 proxy 前的配置。执行 Agent **不得**仅依据 DB 中 `live_takeover_active` 判断 takeover 状态，必须以实际 Claude settings / 出口为准。
+- **proxy 只认 current provider**：转发目标由 `providers.is_current=1` 的那一条决定，且**忽略客户端传入的模型名**（日志实证：发 `gateway-3100:deepseek-v4-flash` 与 `deepseek-v4-flash`，上游收到的都是现用 provider 自己的模型串）。因此**不存在"按请求选 provider"的隔离能力**，要换出口必须翻全局 current provider，会波及所有复用同一 settings.json 的 Claude Code 会话。
+- provider 的 API 格式存于 `providers.meta` 的 `apiFormat` 字段（实测取值：`anthropic` / `openai_chat`），不在 `settings_config` 里；`settings_config` 就是写入 Claude settings 的那份 JSON。
+- 配置载体是 `~/.cc-switch/cc-switch.db`（`journal_mode=delete`），**无控制 API**（进程零监听端口时即为未开代理）；改库需先停 app，否则可能被应用侧内存缓存回写覆盖。
+- 取证：CC Switch 自身日志 `~/.cc-switch/logs/cc-switch.log` 会打印 `[Claude] >>> 请求目标: <url> (model=<上游模型>)` 与 `[FWD-003]` 上游失败原因，是判断"到底打到哪、被谁 429"的唯一可靠依据。
+
 ## 7. 通用安全红线
 TOOLS 可保存"如何找到/验证认证"，**不得保存任何能直接或间接恢复认证的材料**。禁止：
 - password / API key / access·refresh·session token / cookie / Authorization header
