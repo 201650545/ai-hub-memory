@@ -67,11 +67,11 @@
   - 镜像站账号池漂移 → 每次先读 panelAccountList 确认健康账号；
   - 界面形态（textarea vs contenteditable）随版本变 → 按页面实际适配；
   - Windows 长文本 → base64 + eval 注入，勿直接 CLI 传参；
-  - 多链接提示词可能触发 Deep Research 空回复 → 单链接/内嵌版，或转 Kimi K3 兜底（Claude 已停用，见下）。
+  - 多链接提示词可能触发 Deep Research 空回复 → 用单链接/内嵌版提示词规避；仍空回复则按「镜像站故障处理」（见下）报告用户，不自动兜底。
   - **切换 Extended（2026-08-21 实测）**：模型下拉是**自定义 Radix Select**，菜单项不暴露独立按钮索引，整段正则匹配会点中容器 DIV 导致失败；正确做法：先点开右下角「Auto」选择器（aria-haspopup=menu），再用 `document.querySelector('[class*=model-picker-thinking-effort-menu-item]').click()` 精确命中「Thinking · Extended」项（其内层 SPAN class 类似 `flex min-w-0 items-center gap-1`）。提交后务必重新抓取最后一轮（`[data-testid^=conversation-turn-]` 取 last.innerText），避免混用历史会话旧文本。
 - **共享浏览器标签页纪律（用户拍板 2026-08-27，2026-08-28 补充闭环，强制）**：opencli 浏览器会话（如 n8hh7hyn）是**多进程/多 Agent 共享**的——其他任务可能正在用某个标签页（切到小红书/SambaNova/任意页面）。**已有标签页不要抢占、不要导航跳走别人的页面**；需要打开自己的目标时，一律**新建标签页**：`opencli browser <session> tab new "<url>"`（返回 target ID，后续命令用 `--tab <targetId>` 指向自己的标签）。**关闭闭环（2026-08-28，D-GLOBAL-20260828-01）**：① 由 AI 打开的标签页，任务完成后即 `tab close <targetId>` 关闭；② 新任务/不同类型任务时开新标签页，做完关闭旧的；③ **只关闭 AI 自己打开的标签页，绝不切换/关闭用户或其他 Agent 打开的标签页**。会话默认标签被占用时，先 `tab list` 看当前有哪些标签、谁在用，再决定新开。规则原因：2026-08-27 实测发现共享会话标签被反复切走导致镜像站问诊中断、注入内容丢失。
 - **会话纪律（用户拍板 2026-08-15，2026-08-27 修订窗口轮次上限，强制）**：① 进入镜像站后**复用左侧历史会话**（点历史记录进入，不新开对话），再调模型为 Thinking·Extended；② **每个任务 ≤3 轮对答**完成（含 GPT 反问的交流，3 轮内必须解决回来执行）；③ **每窗口 ≤12 轮**，超了必须新开对话（新开后重新选模型）。详细步骤见 ai-resource-hub 操作手册 01 §9。
-- **Kimi K3 兜底（2026-08-15 起，D-GLOBAL-20260815-04）**：Claude 额度已用光，问诊兜底不再走 Claude。GPT 镜像站不可用/空回复/需第二意见时 → `opencli browser <s> open kimi.com`，提问前先开启 **K3 思考进阶模式**（界面找 K3 模型/进阶模式开关），再发送问题；长提示词同样 base64 + eval 注入。
+- **镜像站故障处理（2026-08-28 修订，D-GLOBAL-20260828-01：停用 Kimi 自动兜底）**：GPT 镜像站不可用/空回复/需第二意见时，**不自动转 Kimi**——直接向用户报告：故障现象、已尝试的账号与会话、建议动作（换账号/换会话/稍后重试），等用户指示。Kimi K3 仅在用户主动要求时使用。历史：2026-08-15~27 曾用 Kimi K3 自动兜底（D-GLOBAL-20260815-04，已废止）。：Claude 额度已用光，问诊兜底不再走 Claude。GPT 镜像站不可用/空回复/需第二意见时 → `opencli browser <s> open kimi.com`，提问前先开启 **K3 思考进阶模式**（界面找 K3 模型/进阶模式开关），再发送问题；长提示词同样 base64 + eval 注入。
 
 ## 5. 统一 AI 搜索网关（:3000）
 - 用途：4 大 AI 搜索（元宝/Kimi/秘塔/豆包）并发 + LLM 渠道聚合（DeepSeek 官方/Gemini/OpenRouter）。
