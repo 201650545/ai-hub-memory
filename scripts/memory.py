@@ -821,6 +821,88 @@ def cmd_register(args):
     print("[memory] registered project: " + pid)
 
 
+PROTECT_KW = ("P3PASS", "blocker", "Step 0", "核验令牌", "卡点", "未决", "待你决定", "待用户")
+ARCHIVE_KW = ("resolved", "superseded", "已完成", "已关闭", "已解决", "已了结", "收尾完成", "已提交并推送", "已落定")
+
+
+def _parse_state_entries(text):
+    pat = re.compile(r"^- \*\*\[(S-\d{8}-\d+)\]\*\*")
+    entries, cur = [], None
+    for ln in text.splitlines():
+        m = pat.match(ln)
+        if m:
+            if cur:
+                entries.append(cur)
+            cur = {"sid": m.group(1), "body": ln}
+        elif cur is not None:
+            if ln.startswith("- **[") or ln.startswith("## "):
+                entries.append(cur)
+                cur = None
+            else:
+                cur["body"] += "\n" + ln
+    if cur:
+        entries.append(cur)
+    return entries
+
+
+def cmd_tier_plan(args):
+    """Phase M0：只分类，不移动。只读输出 protected / keep-hot / warm-candidate / archive-candidate。"""
+    manifest = load_manifest()
+    if not args.project:
+        print("ERROR=PROJECT_REQUIRED")
+        sys.exit(2)
+    pid, path = resolve_project(manifest, args.project)
+    sf = ROOT / path / "STATE.md"
+    if not sf.exists():
+        print("ERROR=STATE_NOT_FOUND path=" + str(sf))
+        sys.exit(2)
+
+    text = sf.read_text(encoding="utf-8")
+    entries = _parse_state_entries(text)
+    if not entries:
+        print("[memory] no S- entries parsed from " + str(sf))
+        return
+
+    ordered = sorted(entries, key=lambda e: e["sid"])
+    latest = set(e["sid"] for e in ordered[-args.hot:])
+
+    rows = []
+    for e in ordered:
+        sid, body = e["sid"], e["body"]
+        date = sid[2:10]
+        if any(k in body for k in PROTECT_KW):
+            tier, why = "protected", "含活跃约束/令牌/未决项，永不封存"
+        elif sid in latest:
+            tier, why = "keep-hot", "最近 %d 条内，默认激活" % args.hot
+        elif any(k in body for k in ARCHIVE_KW):
+            tier, why = "archive-candidate", "含完成/关闭类标记且非近期"
+        else:
+            tier, why = "warm-candidate", "非近期且无强保护标记"
+        rows.append({"sid": sid, "date": date, "len": len(body), "tier": tier, "why": why})
+
+    total = sum(r["len"] for r in rows)
+    print("PROJECT=" + pid)
+    print("MODE=READ-ONLY (零文件移动)  HOT_WINDOW=" + str(args.hot))
+    print("ENTRIES=" + str(len(rows)) + "  TOTAL_CHARS=" + str(total))
+    print()
+    print("| SID | 日期 | 字符 | 分层 | 原因 |")
+    print("|---|---|---|---|---|")
+    for r in rows:
+        print("| %s | %s | %d | %s | %s |" % (r["sid"], r["date"], r["len"], r["tier"], r["why"]))
+    print()
+    for tier in ("protected", "keep-hot", "warm-candidate", "archive-candidate"):
+        sub = [r for r in rows if r["tier"] == tier]
+        c = sum(r["len"] for r in sub)
+        print("%-18s n=%-3d chars=%-7d (%.1f%%)" % (tier, len(sub), c, (100.0 * c / total) if total else 0.0))
+    arc = [r for r in rows if r["tier"] == "archive-candidate"]
+    if arc:
+        print()
+        print("若迁移 archive-candidate，可移出 STATE.md 约 %d 字符（%.1f%%），原文 checksum 须保持一致。"
+              % (sum(r["len"] for r in arc), 100.0 * sum(r["len"] for r in arc) / total))
+    print()
+    print("NEXT_ACTION=人工复核本表后再决定是否进入 Phase M1（试点迁移 3-5 条）")
+
+
 def main():
     p = argparse.ArgumentParser(description="ai-hub-memory v2.1 router")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -838,6 +920,7 @@ def main():
     sy = sub.add_parser("sync"); sy.add_argument("--project"); sy.add_argument("--file"); sy.add_argument("--dir"); sy.add_argument("--kind", default="auto"); sy.add_argument("--dry-run", action="store_true")
     bt = sub.add_parser("bootstrap"); bt.add_argument("--project"); bt.add_argument("--capture-scope")
     cp = sub.add_parser("checkpoint"); cp.add_argument("--project"); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
+    tp = sub.add_parser("tier-plan"); tp.add_argument("--project"); tp.add_argument("--hot", type=int, default=5); tp.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
@@ -853,6 +936,7 @@ def main():
     elif args.cmd == "settle": cmd_settle(args)
     elif args.cmd == "bootstrap": cmd_bootstrap(args)
     elif args.cmd == "checkpoint": cmd_checkpoint(args)
+    elif args.cmd == "tier-plan": cmd_tier_plan(args)
 
 
 if __name__ == "__main__":
