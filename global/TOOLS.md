@@ -159,6 +159,9 @@
 - **proxy 只认 current provider**：转发目标由 `providers.is_current=1` 的那一条决定，且**忽略客户端传入的模型名**（日志实证：发 `gateway-3100:deepseek-v4-flash` 与 `deepseek-v4-flash`，上游收到的都是现用 provider 自己的模型串）。因此**不存在"按请求选 provider"的隔离能力**，要换出口必须翻全局 current provider，会波及所有复用同一 settings.json 的 Claude Code 会话。
 - provider 的 API 格式存于 `providers.meta` 的 `apiFormat` 字段（实测取值：`anthropic` / `openai_chat`），不在 `settings_config` 里；`settings_config` 就是写入 Claude settings 的那份 JSON。
 - 配置载体是 `~/.cc-switch/cc-switch.db`（`journal_mode=delete`），**无控制 API**（进程零监听端口时即为未开代理）；改库需先停 app，否则可能被应用侧内存缓存回写覆盖。
+- 凭证分层（2026-08-27 阶段3 实证，勿再误判）：**live `~/.claude/settings.json` 里的 `ANTHROPIC_AUTH_TOKEN` 是 CC Switch 给 proxy 自建的客户端 token（长度约 13），不是上游 key**；上游真值只存在 `providers.settings_config.env.ANTHROPIC_AUTH_TOKEN`，proxy 用它在转发时打上游。因此接自建网关时，应把网关 key 只写 provider 侧，不要试图写进 live。
+- `proxy_live_backup` 会回灌旧凭证：当 `live_matches_current_proxy=false` 时 CC Switch 会用该行「补齐 Live」，若该行 `original_config` 内是别的 provider 的 token，每轮启动都会把旧 token 同时灌回 live 与 provider，表现为"我写的 provider key 被吃掉"（实测长度从网关 key 变回旧 provider 的 42 位）。排查顺序：先确认备份行内容，再怀疑覆盖逻辑。
+- 正确接入顺序：停 app → 清/校正 `proxy_live_backup` → 写 provider（含上游 key、`meta.apiFormat`）→ 改 `currentProviderClaude` 与 `is_current` → 开 `proxy_enabled/enabled` → 启 app → 用 `:3100 /api/route-log` 与 CC Switch `请求目标` 日志双向确认。回退时必须用**原 provider 的 `settings_config`** 作为 live 凭证真源（备份行可能已被污染）。
 - 取证：CC Switch 自身日志 `~/.cc-switch/logs/cc-switch.log` 会打印 `[Claude] >>> 请求目标: <url> (model=<上游模型>)` 与 `[FWD-003]` 上游失败原因，是判断"到底打到哪、被谁 429"的唯一可靠依据。
 
 ## 7. 通用安全红线
