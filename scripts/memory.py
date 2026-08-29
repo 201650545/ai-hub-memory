@@ -871,9 +871,10 @@ def cmd_tier_plan(args):
         sid, body = e["sid"], e["body"]
         date = sid[2:10]
         has_resolve = any(k in body for k in ARCHIVE_KW)
+        no_blocker = bool(re.search(r"卡点[:：]\s*(无|暂无|None|none|N/A|n/a)", body)) or "无卡点" in body
         if any(k in body for k in PROTECT_KW):
             tier, why = "protected", "含活跃约束/令牌/未决项，永不封存"
-        elif "卡点" in body and not has_resolve:
+        elif "卡点" in body and not has_resolve and not no_blocker:
             tier, why = "protected", "当前未决卡点（含卡点且无已解标记）"
         elif sid in latest:
             tier, why = "keep-hot", "最近 %d 条内，默认激活" % args.hot
