@@ -1,0 +1,121 @@
+GW-BIND-NARROW-2026-0829-127-VERIFIED
+
+R2 裁定
+
+裁定编号：R2-GW-BIND-NARROW-2026-0829
+
+结论分两层：
+
+当前部署运行态：PASS，可接受。 把 :3100 从 0.0.0.0 收窄到 127.0.0.1 与目前“全部调用方均在本机”的事实相符，实际监听、LAN 拒绝、健康检查、鉴权和 35/35 路由回归也形成了较完整的正反向证据链。原始问诊文档确实记录了这些结果。
+GitHub
+
+代码配置接口：建议补 1 个重要加固后再视为完全闭环。 当前 os.environ.get("API_GATEWAY_BIND", "127.0.0.1") 存在一个容易忽略的 fail-open 边角：如果环境变量存在但值为空字符串，Python IPv4 socket 将 '' 解释为 INADDR_ANY，即绑定所有接口。Python 官方文档明确说明这一行为。
+Python documentation
++1
+
+因此我给本轮的最终评级是：运行态 A；设计闭环 A-，补完空值/通配绑定保护后可升 A。
+
+1. 收窄到 127.0.0.1 是否正确
+
+正确，而且比继续依赖防火墙挡住 0.0.0.0 更符合最小暴露面原则。
+
+现有证据中，明确客户端是 127.0.0.1 或 localhost，Cherry 活跃配置没有 3100，并且已有 192.168.x.x:3100 零引用扫描；实际 LAN 地址连接又被拒绝。
+GitHub
+
+不过，“不存在遗漏 LAN 调用方”的否定性证明还可以再严谨一点。当前 192.168.x.x:3100 = 0 的搜索范围偏窄，我建议最后补以下几类，均要求输出 count，而不是人工目视：
+
+所有 3100 引用先全量枚举，再分类：不要只搜索 192.168.*:3100。对 active code/config 中所有 3100 命中做 allowlist，允许 127.0.0.1、localhost 和明确的服务端端口定义，最终“未知/非 loopback 调用地址”残余应为 0。
+
+补查 10.0.0.0/8、172.16.0.0/12、机器当前主机名、%COMPUTERNAME%、.local/mDNS 名，以及 IPv6 地址形式；虽然你当前 LAN 是 192.168.1.x，这样才构成泛化后的否定性判据。
+
+补查 .env、XML、无扩展名配置、PowerShell profile、注册表、NSSM AppEnvironment/AppEnvironmentExtra、计划任务和启动脚本，而不只是 py/ps1/bat/json/yaml/toml/ini。
+
+如果 WSL、Docker、Hyper-V/虚拟机曾调用此网关，也单独确认；对它们来说 Windows 的 127.0.0.1 不一定等价于宿主机 loopback。
+
+这里还有一个应马上补测的小项：你有两个配置使用 http://localhost:3100，但实际只监听 IPv4 127.0.0.1。因此验收不能只证明 127.0.0.1/healthz 成功，还应证明实际使用 localhost 配置的客户端能够成功调用。最好跑一次真实客户端 smoke test，而不只是 curl 127.0.0.1。
+
+2. API_GATEWAY_BIND 设计
+
+“默认 127.0.0.1，允许显式覆盖”这个总体设计是合理的；问题在于应该把它真正做成 fail closed。
+
+当前形式：
+
+Python
+Run
+BIND_HOST = os.environ.get("API_GATEWAY_BIND", "127.0.0.1")
+
+建议至少改成语义等价于：
+
+Python
+Run
+raw = os.environ.get("API_GATEWAY_BIND")
+BIND_HOST = (raw.strip() if raw else "") or "127.0.0.1"
+
+并进一步做值校验。尤其要避免：
+
+API_GATEWAY_BIND= → 空字符串 → 意外 wildcard；
+
+API_GATEWAY_BIND= → trim 后为空；
+
+拼写错误或异常 hostname 被悄悄解析；
+
+无意设置 0.0.0.0 就直接扩大攻击面。
+
+更稳妥的设计是让 wildcard 需要第二个明确开关，例如逻辑上：
+
+默认：127.0.0.1
+指定普通地址：校验后使用
+0.0.0.0：只有显式 ALLOW_LAN/WILDCARD=1 才允许，否则启动失败
+
+而且将来真要 LAN 接入时，我优先推荐 绑定具体 LAN IP，例如机器的 192.168.1.x，而不是 0.0.0.0。0.0.0.0 不仅代表家庭 LAN，还可能同时覆盖 VPN、虚拟网卡、Hyper-V 等其他 IPv4 接口。
+
+3. “LAN 无法访问”是不是合理取舍
+
+是，而且现在应该把它视为预期安全属性，而不是功能缺陷。
+
+目前没有 LAN 消费者，为未来可能出现的手机、平板或 Cherry LAN 需求提前开放端口，只会永久增加不必要的攻击面。将来真实需求出现后再开，成本也很低：环境变量变更 + 服务重启 + 网络/鉴权验收，不需要代码回滚。
+
+但届时不建议简单地：
+
+API_GATEWAY_BIND=0.0.0.0
+
+然后结束。更合适的恢复顺序是：
+
+具体 LAN IP > wildcard，同时维持 API key 鉴权，并用 Windows Firewall 限制到所需私网/设备。如果请求在 LAN 上传输 API key、prompt 或其他敏感内容，还应重新评估明文 HTTP 是否满足要求；手机 Web UI 公开与“同机进程调用 API”是两个明显不同的威胁模型。
+
+所以这次的 API_GATEWAY_BIND 覆盖能力很有价值：它让未来扩展成为受控配置变更，而不是重新修改源代码。
+
+4. 建议补齐的最终机器验收矩阵
+
+你现有的 listener=1、/healthz=200、LAN refused、无 key /v1/models=401、35/35 PASS 已经覆盖主要路径。
+GitHub
+ 我建议再增加下面这组，作为 R2 的最终闭环：
+
+判据	期望
+TCP LISTEN 总数	LocalPort=3100 恰 1
+IPv4 bind	唯一地址为 127.0.0.1
+wildcard IPv4	0.0.0.0:3100 count = 0
+IPv6 wildcard	[::]:3100 count = 0
+loopback IPv6	::1:3100 明确记录为 0 或有意支持
+127.0.0.1/healthz	200
+localhost/healthz	200
+实际 localhost 配置消费者 smoke	PASS
+当前 LAN IPv4 → 3100	connection refused/不可达
+未鉴权 /v1/models	401
+未鉴权 /v1/chat/completions	401/403，且不得触发上游调用
+有效鉴权 E2E 请求	PASS
+服务 restart 后重新检测	仍只监听 127.0.0.1:3100
+所有 active 配置中非 loopback 3100 caller	count = 0
+API_GATEWAY_BIND 空值/空白值单测	必须回到 loopback 或直接 fail closed
+未授权 wildcard 配置单测	必须启动失败
+listener PID	属于 API3100Gateway 服务进程树
+
+其中我认为优先级最高的三项是：
+
+P1：修复 API_GATEWAY_BIND="" 的 wildcard fail-open；
+P1：补 localhost 实际消费者测试；
+P2：把“192.168. 零引用”升级为“所有 3100 引用分类后非 loopback caller = 0”。*
+
+另外可以做一道防御纵深检查：确认 Windows 防火墙没有遗留一个针对 3100 或 Python 可执行文件的过宽入站 Allow 规则。它不影响当前 loopback 绑定的安全结论，但能降低将来误改为 wildcard 时的后果。
+
+R2 最终裁定：本次端口收窄方向正确，当前生产运行态验收通过；无需恢复 0.0.0.0。完成空环境变量 fail-open 防护和 localhost smoke 后，可将本任务标记为“安全加固闭环完成”。
