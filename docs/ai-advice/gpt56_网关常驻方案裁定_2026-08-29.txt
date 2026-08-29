@@ -1,0 +1,403 @@
+GW-STABLE-SVC-2026-0829-9RB6-VERIFIED
+
+已实读并核验远端文档；令牌、现状事实、commit 875fa19、两个已禁用计划任务以及六个待裁决问题均与本轮问题包一致。
+raw.githubusercontent.com
+
+本轮裁定总览
+裁定编号	结论
+R1-01 托管	改为 SCM Windows 服务是正确方向；2026 年新部署优先 WinSW stable，其次 NSSM 2.24-101+；不建议回退计划任务+watchdog。
+R1-02 身份	不建议 LocalSystem。首选 NT SERVICE\API3100Gateway 虚拟服务账户；次选 LocalService。无需为了“网络访问”直接改成你的登录用户。
+R1-03 停止	AppExit Default Restart 不会导致管理员正常 Stop 后又自动拉起。部署时应 Stop → 确认 PID/端口归零 → 换代码 → Start → 健康检查。
+R1-04 端口自愈	当前无条件 taskkill 监听者风险偏高。我的建议比“加命令行白名单”更严格：正常服务模式下不要自动杀端口拥有者，端口冲突应 fail closed。
+R1-05 验收	验收必须同时检查 service state、3100 listener 数量、PID 连续性、旧任务状态和 restart 次数，而不能只看“端口能打开”。
+R1-06 启动时序	改为 Delayed Auto Start + 数据目录 readiness preflight。不建议 D 盘不可用时每 3 秒无限 crash-loop。
+R1-07 单一控制源	旧 SearchGateway 与 SearchGatewayWatchdog 保持 Disabled；以后只有 SCM 服务拥有启动/停止权。
+1. NSSM / WinSW / pywin32 / 计划任务：选哪个
+
+你的根因判断是成立的：原方案的问题并不是 Python HTTP server 天生不稳定，而是把长期 daemon 生命周期建立在 LogonTrigger + 电池条件 + 自制 watchdog 上。Windows SCM 本来就是干这件事的，所以 B“单一控制源 = 服务”应该保留。
+
+不过我会稍微修改 A：如果这是 2026-08-29 新部署，我优先选 WinSW 的稳定版本，而不是从零引入 NSSM。
+
+原因不是 NSSM 不可靠，而是它的正式 release 2.24 发布于 2014 年，NSSM 官方目前仍明确提示：原版 2.24 在 Windows 10 Creators Update / Server 2016 及之后有启动问题，要求使用 2.24-101 或更高 build，或者配置 AppNoConsole=1。这对 Windows 11 新部署来说是一笔不必要的版本知识债。
+NSSM
++1
+
+WinSW 则原生就是“任意程序→Windows Service”包装器，支持 Automatic/Delayed Auto Start、working directory、service account、rolling logging、stop timeout 和 SCM failure/restart 配置；项目仓库在 2026 年仍有活动。它当前公开 latest stable 是 2.12.0，而 v3 仍为 alpha，因此生产环境我不会让你为了“新”而上 v3 alpha。
+GitHub
++3
+GitHub
++3
+GitHub
++3
+
+如果你已经有来源可信并固定 hash 的 NSSM 2.24-101+，则完全没有必要为了这点迁移 WinSW。此时 NSSM 仍是一个很好的“小而简单”方案。也就是说：
+
+新选型：WinSW stable 略优。已有 NSSM：继续 NSSM，不值得二次迁移。
+
+pywin32 win32serviceutil 是技术上最“原生”的 Python 方案，它会让 Python 程序真正注册控制处理器、响应 SCM stop/shutdown 等；pywin32 仍提供完整 ServiceFramework。但代价是你的 1200 行纯 stdlib 网关从“普通 Python 程序”变成“Windows 特定 service application”，引入 pywin32、安装/打包、服务调试等额外维护面。对当前目标没有足够收益。
+GitHub
++1
+
+计划任务 + watchdog 排最后。它不是不能做，而是在重复实现 SCM 已经成熟解决的监督、恢复和开机生命周期。
+
+至于 qoder 的 deepseek-harness：“一直稳定”绝不等价于“系统服务托管”。 它可能是 SCM service，也可能是用户会话 agent、后台 daemon、Job Object、Electron/IDE 常驻父进程等。要机器判定，可以沿进程树检查：
+
+PowerShell
+Get-CimInstance Win32_Process |
+  Where-Object CommandLine -Like '*deepseek-harness*' |
+  Select-Object ProcessId,ParentProcessId,SessionId,ExecutablePath,CommandLine
+
+Get-CimInstance Win32_Service |
+  Where-Object ProcessId -ne 0 |
+  Select-Object Name,State,StartMode,ProcessId,StartName
+
+如果 harness 的实际守护 PID 能对应 Win32_Service.ProcessId，才有“SCM 托管”的直接证据。
+
+2. LocalSystem：我建议不要用
+
+这一点我会比你拟案更保守。
+
+Microsoft 明确说明 LocalSystem 在本机拥有极高权限，且不属于当前登录用户；其 HKCU 是默认用户而不是你的交互式账户，而且访问网络时代表的是计算机身份。微软也明确建议不需要这么高权限的服务使用较低权限账户。
+Microsoft Learn
++1
+
+你的服务还是：
+
+0.0.0.0:3100 → HTTP API → 能读取本地渠道凭证 → 能向外发请求。
+
+如果网关本身出现命令执行、路径穿越之类的 bug，让它同时拥有 SYSTEM 权限会把影响面扩大很多。因此我的首选不是“你的用户账户”，而是：
+
+NT SERVICE\API3100Gateway 虚拟服务账户。
+
+Windows 支持 NT SERVICE\<ServiceName> 形式的虚拟账户，密码由系统管理，不需要你保存密码，同时可以把 ACL 精确授给该服务。Microsoft 的 CreateService 文档也明确支持 virtual account。NSSM 自身的命令文档同样列出了 NT Service\... 虚拟服务账户为无需密码的账户类型。
+Microsoft Learn
++1
+
+权限模型建议变成：
+
+D:\项目\services\search_gateway\
+    service identity: Read & Execute
+
+D:\项目\data\search_gateway\
+    service identity: 只给业务真正需要的 Read/Write/Modify
+
+D:\项目\services\search_gateway\runs\
+    service identity: Modify
+
+不要让运行身份拥有修改 api_gateway.py 的权限。 这样即使网关进程被利用，也更难直接改自己的程序文件形成持久化。
+
+如果虚拟账户与包装器组合遇到兼容问题，第二选择是 NT AUTHORITY\LocalService，而不是 LocalSystem。LocalService 是低权限本地账户，也不需要密码。
+Microsoft Learn
+
+代理和环境确实要专项验收
+
+这一担心是成立的。
+
+如果你的 stdlib HTTP 调用走 urllib.request，Python 会优先读取 http_proxy / https_proxy 等环境变量；在 Windows 没有这些变量时，还可能读取 Windows Registry 的代理配置。
+Python documentation
+
+但 LocalSystem 的 HKCU 与你的用户 HKCU 不是一个东西；微软对服务使用用户代理也有专门说明。因此“交互式命令行里能访问渠道”并不能证明 SYSTEM/LocalService 下也一定能访问。
+Microsoft Learn
++1
+
+因此正确解决方式不是直接让服务以你的账号运行，而是把隐式用户环境变成显式服务环境，比如把确实需要的：
+
+HTTP_PROXY
+HTTPS_PROXY
+NO_PROXY
+以及 gateway 自己使用的非秘密配置变量
+
+配置到 WinSW <env> 或 NSSM AppEnvironmentExtra。NSSM 官方支持额外环境变量，WinSW 也有 <env>。
+NSSM
++1
+
+只有当程序真正依赖用户私有证书、Windows Integrated Auth、用户专属网络共享、用户 profile 中不可外置的配置时，我才会考虑专门的普通 service user。
+
+3. AppExit Default Restart 会不会“Stop 不掉”
+
+不会，正常 SCM Stop 与“子进程自己退出”是两个生命周期。
+
+NSSM 官方说明，当它收到 Windows Service Manager 的 stop command 时，会尝试按顺序对被托管程序执行 Ctrl+C、WM_CLOSE、WM_QUIT，最终必要时 TerminateProcess()，之后 NSSM 服务本身退出。AppExit Default Restart 是针对被监控 application 的退出行为，而不是用来违抗 SCM 的管理员 Stop。
+NSSM
++1
+
+所以：
+
+PowerShell
+Stop-Service API3100Gateway
+
+应该得到真正的 Stopped，不会三秒后偷偷复活。
+
+NSSM 默认每个优雅停止阶段只等约 1500 ms。对于 Python server，我会把 Ctrl+C 等待时间提高，例如 5–10 秒，而不是仅 1.5 秒，特别是如果程序以后要 flush 日志或完成请求。NSSM 官方允许设置 AppStopMethodConsole 等 timeout。
+NSSM
+
+部署姿势建议固定成：
+
+Stop 服务
+→ 等待 Status=Stopped
+→ 验证 :3100 LISTENING count = 0
+→ 验证旧 python gateway PID count = 0
+→ 原子替换/更新代码
+→ Start 服务
+→ 验证 service + listener + /healthz
+
+而不是边运行边覆盖代码然后寄希望于 restart。
+
+顺带指出你当前 NSSM 日志配置中的一个细节：AppRotateFiles 1 默认主要是在 service restart 时旋转，并不会自动限制一个长期不重启服务的日志大小。 NSSM 的在线 rotation 需要额外启用 AppRotateOnline，官方自己也提醒在线 rotation 增加 I/O 复杂度。
+NSSM
+
+这也是 WinSW 的滚动日志配置在长期运行服务里更省心的一个小优势。
+
+4. commit 875fa19 的自动 taskkill：建议修改
+
+这里我给出比较明确的否决：
+
+不要保留“发现任何 :3100 LISTENING PID → taskkill /F”的当前语义。
+
+一个很重要的事实是：一个已经死亡的 Python 进程不会继续拥有 LISTENING socket。 Windows 内核在进程退出后会关闭其 socket。
+
+所以：
+
+gateway 崩溃 → “残留的 LISTENING 3100 端口”
+
+不是正常意义上的“socket 残留”。
+
+如果 netstat 此时真看到 LISTENING，说明仍然存在某个活进程拥有这个监听 socket。
+
+它可能是：
+
+旧 SearchGateway 遗留实例
+手工启动的 api_gateway.py
+另一个测试 gateway
+错误配置的另一服务
+或者完全无关的程序
+
+因此自动 taskkill /F 实际上是：
+
+“只要有人占了我的端口，我就杀它。”
+
+作为一个以 service identity 运行的后台 API，这个策略不够安全。特别是如果仍用 LocalSystem，误杀权限会非常大。
+
+“命令行包含 api_gateway 才杀”明显优于现在，但我仍然不把它作为最终设计，因为两个合法 gateway 实例也都可能匹配。
+
+我的首选是：
+
+bind 成功
+    → 正常运行
+
+bind 失败 + 3100 已 LISTENING
+    → 记录 PID / executable / command line
+    → 退出特定错误码
+    → 不 taskkill
+
+既然 R1-07 已规定 SCM 是唯一控制源，那么第二个 gateway 本来就是异常状态，应该暴露异常，而不是让一个实例自主裁决“另一个实例该死”。
+
+如果你坚持保留自愈杀进程，最低限度应同时验证：
+
+ExecutablePath == 预期 python.exe
+AND
+CommandLine 含规范化后的完整 D:\项目\services\search_gateway\api_gateway.py
+AND
+PID != self
+AND
+进程不是当前服务树中的预期进程
+
+并把 PID、完整 executable、command line、creation time 写入审计日志后再杀。
+
+但我的 R1-04 正式裁定仍是：服务模式下删除自动 kill，bind conflict fail closed。
+
+5. 验收判据
+
+我非常赞同你提出的“否定性判据必须 scan/count”。不能验收成“我访问了一下好像可以”。
+
+最值得先加的是一个不访问任何厂商的：
+
+GET /healthz
+→ HTTP 200
+→ {"ok":true}
+
+这样健康检测不会消费 token，也不会把“上游厂商故障”和“本地服务死亡”混为一谈。
+
+建议机器验收矩阵如下：
+
+场景	必须成立
+正常态	Service.Status == Running
+正常态	3100 LISTENING 的 unique OwningProcess 恰好 1 个
+正常态	gateway Python 实例 恰好 1 个
+正常态	localhost:3100/healthz == 200
+崩溃恢复	强杀已确认的 gateway child PID 后，服务自动恢复
+崩溃恢复	恢复后的 listener PID ≠ 被杀 PID
+崩溃恢复	在给定观察窗内 listener count 从未 >1
+崩溃恢复	例如 60 秒窗口内 restart 次数没有持续增长，排除 crash-loop
+电池	AC→battery→AC 期间，机器保持 awake 时 service 始终 Running
+电池	上述过程中 listener count 始终 =1，PID 最好不变化
+开机	重启后不运行任何手工启动脚本，服务自动 Running
+开机	3100 listener count =1
+旧机制	SearchGateway、SearchGatewayWatchdog 均为 Disabled
+旧机制	没有 watchdog cmd/bat 常驻进程
+
+核心 count 可以直接写成：
+
+PowerShell
+$listen = @(
+    Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty OwningProcess -Unique
+)
+
+if ($listen.Count -ne 1) {
+    throw "FAIL: expected exactly 1 listener, got $($listen.Count)"
+}
+
+$svc = Get-Service API3100Gateway
+if ($svc.Status -ne 'Running') {
+    throw "FAIL: service is $($svc.Status)"
+}
+
+再把 owner 与 command line 联起来：
+
+PowerShell
+$pid3100 = $listen[0]
+
+$p = Get-CimInstance Win32_Process -Filter "ProcessId=$pid3100"
+
+$p | Select-Object ProcessId,ParentProcessId,ExecutablePath,CommandLine
+
+崩溃测试时，先保存明确验证过的 $pid3100，再只杀这个 PID：
+
+PowerShell
+$oldPid = $pid3100
+Stop-Process -Id $oldPid -Force
+
+然后循环 scan，例如最长 30 秒；通过标准应同时为：
+
+service == Running
+listener_count == 1
+new_pid != old_pid
+healthz == 200
+
+而不是单独判断 Test-NetConnection=True。
+
+拔电测试需要修正一句定义
+
+Windows Service 本身没有你原 Task Scheduler 那种 StopIfGoingOnBatteries 条件，所以拔掉 AC 不应该杀服务。
+
+但笔记本如果之后进入 Sleep/Hibernate，网络当然会中断；这不能判服务失败。
+
+因此正式验收词应该是：
+
+在 Windows 保持 Awake 的前提下，AC→Battery→AC 不造成服务停止、进程重启或 3100 listener 消失。
+
+可以同步采集：
+
+PowerShell
+Get-CimInstance -Namespace root\wmi -Class BatteryStatus |
+    Select-Object PowerOnline
+
+Get-Service API3100Gateway
+
+Get-NetTCPConnection -LocalPort 3100 -State Listen
+
+持续 scan 后要求 bad_sample_count == 0。
+
+6. D 盘启动时序：建议 Delayed Auto Start
+
+你的担心合理，不过不需要马上设计复杂的 AppExit 状态机。
+
+Windows 的 Delayed Automatic Start 会在普通 automatic services 启动后再延迟一段时间，Microsoft 文档描述的典型延迟约两分钟。
+Microsoft Learn
+
+对一台个人 Windows 11 笔记本上的 API gateway，我认为：
+
+SERVICE_DELAYED_AUTO_START 比 SERVICE_AUTO_START 更合理。
+
+它仍然：
+
+不依赖登录
+不依赖 Task Scheduler
+自动启动
+由 SCM 管理
+
+但给系统磁盘、D 盘、网络栈等更多稳定时间。
+
+然后在 gateway 启动最前面做明确 preflight：
+
+代码目录存在？
+data 目录存在？
+channels.json 可读？
+runs 目录存在且可写？
+必要配置加载成功？
+然后才 bind 3100
+
+如果 D: 是普通内部固定 NTFS 分区，绝大部分启动都不会成为问题；真正值得防的是 BitLocker 状态、VHD/挂载盘、可移动盘、硬件/文件系统异常等。
+
+我不建议当前的：
+
+D: 不存在
+→ crash
+→ 3 秒
+→ restart
+→ crash
+→ 3 秒
+→ ...
+
+这会制造日志风暴和无意义 CPU/磁盘活动。
+
+更合理是：
+
+Delayed Auto Start
+→ 启动后 readiness wait，例如短时间有界等待
+→ 仍不可用则明确记录 STORAGE_NOT_READY
+→ 使用较长恢复间隔
+
+WinSW 的 failure action 本身支持不同恢复阶段设置不同 delay；例如第一次短、之后变长。
+GitHub
+
+NSSM 则有 AppRestartDelay 和 restart throttling；其 AppExit 可以按特定 exit code 决定 Restart/Exit，不过 restart delay 本身不是一个很好用的“每错误类型单独退避”机制。
+NSSM
+
+因此如果继续 NSSM，我建议至少：
+
+默认异常 crash → Restart
+AppRestartDelay 不要过激
+D 盘 readiness 在 Python 进程内部做有限等待
+端口被占 → 明确错误码 + Exit，不自动杀、不快速循环
+我会落地的最终形态
+
+综合你的目标，我会把方案改成：
+
+Windows SCM
+    │
+    └── WinSW stable
+         或已有的 NSSM 2.24-101+
+             │
+             └── python.exe
+                 D:\项目\services\search_gateway\api_gateway.py
+
+Identity:
+    NT SERVICE\API3100Gateway
+    （失败再退到 LocalService）
+
+Startup:
+    Delayed Automatic
+
+Ownership:
+    只有 API3100Gateway 可以启动 gateway
+    SearchGateway = Disabled
+    SearchGatewayWatchdog = Disabled
+
+Storage:
+    code: RX
+    data: 必要的 R/M
+    runs: M
+
+Recovery:
+    ordinary crash → restart
+    storage not ready → readiness wait / 慢恢复
+    port already owned → FAIL CLOSED，不自动 taskkill
+
+Health:
+    /healthz，不访问任何 LLM vendor
+
+其中我认为最值得立刻修改的两处，是 LocalSystem → 虚拟服务账户 和 删除“见到 3100 LISTENING 就强杀”的自动恢复逻辑。相比包装器到底选 NSSM 还是 WinSW，这两项对实际安全性和长期可预测性的影响反而更大。
+
+另外，因为当前 server 绑定的是 0.0.0.0:3100，如果实际上只有本机软件调用它，我还会直接改为 127.0.0.1:3100；如果确实需要 LAN 调用，则至少把 Windows Firewall 的来源范围和 gateway 自身认证纳入验收。LocalSystem + 0.0.0.0 + 本地厂商凭证这个组合尤其不值得保留。
