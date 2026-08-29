@@ -1,0 +1,11 @@
+{
+  "schema": "settlement-receipt-v1",
+  "id": "I-20260829T000001-TABLE-RESTRUCTURE",
+  "settled_at": "2026-08-29T11:19:58.880540+00:00",
+  "disposition": "covered",
+  "capture_scope": "handoff",
+  "original_project_hint": "ai-resources",
+  "final_project": null,
+  "target_id": "S-20260829-01",
+  "reason": "任务已由并行 Agent 执行完毕并记录为 S-20260829-01（模型资源总表 tbl5ONs0gzE7I5xI 合并 77 条、厂商三级分类、全量备份 feishu_base_backup_20260829）；2026-08-29 核验当前 Base 9 表与 21 字段符合验收标准，关闭收件防重复执行"
+}
