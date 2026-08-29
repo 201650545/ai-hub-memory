@@ -1,7 +1,8 @@
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 
-const NODE = 'C:/Users/郭永涛/.workbuddy/binaries/node/versions/22.22.2/node.exe';
+const PINNED_NODE = 'C:/Users/郭永涛/.workbuddy/binaries/node/versions/22.22.2/node.exe';
+const NODE = fs.existsSync(PINNED_NODE) ? PINNED_NODE : process.execPath;
 const CLI = 'D:/opencli-app/dist/src/main.js';
 
 const args = process.argv.slice(2);
