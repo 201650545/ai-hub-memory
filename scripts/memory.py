@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "MEMORY.json"
 INBOX = ROOT / "inbox"
 INBOX_META = INBOX / "META.json"
+CLAIMS_DIR = ROOT / "coordination" / "claims"
 
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{16,}", "sk- key"),
@@ -990,6 +991,65 @@ def cmd_verify(args):
     return 0
 
 
+def _load_claims():
+    claims = {}
+    if CLAIMS_DIR.is_dir():
+        for fp in sorted(CLAIMS_DIR.rglob("*.md")):
+            t = fp.read_text(encoding="utf-8")
+            m = re.search(r"^claim_id:\s*(\S+)", t, re.M)
+            cid = m.group(1) if m else fp.stem
+            claims[cid] = (str(fp.relative_to(ROOT)), t)
+    return claims
+
+
+def cmd_claim(args):
+    """协作租约（非强锁）：防多 Agent 重复做同一高成本 subject_key。"""
+    if args.action == "list":
+        claims = _load_claims()
+        if not claims:
+            print("[memory] no claims")
+            return 0
+        for cid in sorted(claims):
+            path, t = claims[cid]
+            def f(k):
+                m = re.search(r"^" + k + r":\s*(.+)$", t, re.M)
+                return m.group(1).strip() if m else "?"
+            print(cid + " | " + f("status") + " | " + f("project") + " | " + f("subject_key") + " | " + f("task") + " | " + path)
+        return 0
+    if args.action == "create":
+        if not args.project or not args.subject_key or not args.task:
+            sys.exit("[memory] claim create 需要 --project --subject-key --task")
+        CLAIMS_DIR.mkdir(parents=True, exist_ok=True)
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        n = 1
+        while (CLAIMS_DIR / ("C-" + today + "-" + str(n).zfill(2) + ".md")).exists():
+            n += 1
+        cid = "C-" + today + "-" + str(n).zfill(2)
+        now = datetime.now(timezone.utc)
+        content = ("claim_id: " + cid + "\n"
+                   "project: " + args.project + "\n"
+                   "subject_key: " + args.subject_key + "\n"
+                   "task: " + args.task + "\n"
+                   "owner: session-unknown\n"
+                   "claimed_at: " + now.strftime("%Y-%m-%dT%H:%M:%SZ") + "\n"
+                   "expires_at: " + (args.expires or now.date().isoformat()) + "\n"
+                   "status: active\n")
+        fp = CLAIMS_DIR / (cid + ".md")
+        fp.write_text(content, encoding="utf-8")
+        print("[memory] claim created " + str(fp.relative_to(ROOT)))
+        return 0
+    if args.action == "settle":
+        if not args.claim_id:
+            sys.exit("[memory] claim settle 需要 --claim-id")
+        claims = _load_claims()
+        if args.claim_id not in claims:
+            sys.exit("[memory] claim 不存在 " + args.claim_id)
+        fp = ROOT / claims[args.claim_id][0]
+        fp.write_text(re.sub(r"^status:\s*active", "status: settled", claims[args.claim_id][1], flags=re.M, count=1), encoding="utf-8")
+        print("[memory] claim settled " + args.claim_id)
+        return 0
+
+
 def main():
     p = argparse.ArgumentParser(description="ai-hub-memory v2.1 router")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -1009,6 +1069,7 @@ def main():
     bt = sub.add_parser("bootstrap"); bt.add_argument("--project"); bt.add_argument("--capture-scope")
     cp = sub.add_parser("checkpoint"); cp.add_argument("--project"); cp.add_argument("--kind", default="state"); cp.add_argument("--sid"); cp.add_argument("--content", required=True); cp.add_argument("--checkpoint-id")
     tp = sub.add_parser("tier-plan"); tp.add_argument("--project"); tp.add_argument("--hot", type=int, default=5); tp.add_argument("--dry-run", action="store_true")
+    cl = sub.add_parser("claim"); cl.add_argument("--action", required=True, choices=["list", "create", "settle"]); cl.add_argument("--project", default=""); cl.add_argument("--subject-key", default=""); cl.add_argument("--task", default=""); cl.add_argument("--claim-id", default=""); cl.add_argument("--expires", default="")
     args = p.parse_args()
     if args.cmd == "route": cmd_route(args)
     elif args.cmd == "read": cmd_read(args)
@@ -1026,6 +1087,7 @@ def main():
     elif args.cmd == "bootstrap": cmd_bootstrap(args)
     elif args.cmd == "checkpoint": cmd_checkpoint(args)
     elif args.cmd == "tier-plan": cmd_tier_plan(args)
+    elif args.cmd == "claim": sys.exit(cmd_claim(args))
 
 
 if __name__ == "__main__":
