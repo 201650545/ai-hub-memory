@@ -133,6 +133,7 @@
 ## 6.6 OpenAI API 模型路由网关（:3100）
 - 用途：OpenAI-compatible LLM 路由网关（多厂商聚合 + 自动 fallback），与 :3000 AI 搜索网关**相互独立**。
 - 入口：`http://127.0.0.1:3100`（API_GATEWAY_PORT 覆盖）。
+- 绑定地址：默认 `127.0.0.1` 仅本机（2026-08-29 安全收窄，GPT R1 建议；已确认无 LAN/Cherry 依赖）；如需局域网接入设 `API_GATEWAY_BIND=0.0.0.0` 覆盖并重启服务。
 - 关键文件（services/search_gateway/）：
   - `api_gateway.py`：HTTP 服务 + 路由/failover 编排
   - `channels.py`：渠道层、key 池轮换、健康缓存
