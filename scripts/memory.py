@@ -821,8 +821,8 @@ def cmd_register(args):
     print("[memory] registered project: " + pid)
 
 
-PROTECT_KW = ("P3PASS", "blocker", "Step 0", "核验令牌", "卡点", "未决", "待你决定", "待用户")
-ARCHIVE_KW = ("resolved", "superseded", "已完成", "已关闭", "已解决", "已了结", "收尾完成", "已提交并推送", "已落定")
+PROTECT_KW = ("P3PASS", "blocker", "Step 0", "核验令牌", "未决", "待你决定", "待用户", "当前未决卡点")
+ARCHIVE_KW = ("resolved", "superseded", "已完成", "已关闭", "已解决", "已了结", "收尾完成", "已提交并推送", "已落定", "历史已解卡点")
 
 
 def _parse_state_entries(text):
@@ -870,11 +870,14 @@ def cmd_tier_plan(args):
     for e in ordered:
         sid, body = e["sid"], e["body"]
         date = sid[2:10]
+        has_resolve = any(k in body for k in ARCHIVE_KW)
         if any(k in body for k in PROTECT_KW):
             tier, why = "protected", "含活跃约束/令牌/未决项，永不封存"
+        elif "卡点" in body and not has_resolve:
+            tier, why = "protected", "当前未决卡点（含卡点且无已解标记）"
         elif sid in latest:
             tier, why = "keep-hot", "最近 %d 条内，默认激活" % args.hot
-        elif any(k in body for k in ARCHIVE_KW):
+        elif has_resolve:
             tier, why = "archive-candidate", "含完成/关闭类标记且非近期"
         else:
             tier, why = "warm-candidate", "非近期且无强保护标记"
