@@ -13,6 +13,7 @@ Design (v2.1, GPT 3-round finalized 2026-08-14):
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -907,6 +908,88 @@ def cmd_tier_plan(args):
     print("NEXT_ACTION=人工复核本表后再决定是否进入 Phase M1（试点迁移 3-5 条）")
 
 
+def _router_rows(text):
+    rows = []
+    for ln in text.splitlines():
+        ln = ln.strip()
+        if not (ln.startswith("| S-") or ln.startswith("|S-")):
+            continue
+        cells = [c.strip() for c in ln.strip("|").split("|")]
+        if len(cells) < 10:
+            continue
+        rows.append({"memory_id": cells[0], "kind": cells[1], "topic_keys": cells[2],
+                     "entities": cells[3], "period": cells[4], "status": cells[5],
+                     "archive_ref": cells[6], "source_ids": cells[7],
+                     "superseded_by": cells[8], "sha256_16": cells[9]})
+    return rows
+
+
+def _archive_segment(text, sid):
+    m = re.search(r"^\- \*\*\[" + re.escape(sid) + r"\]\*\*.*$", text, re.M)
+    return m.group(0) if m else None
+
+
+def _marker_sids(text):
+    return set(re.findall(r"^\- \*\*\[(S-\d{8}-\d+)\]\*\*", text, re.M))
+
+
+def cmd_verify(args):
+    """只读校验 Router↔archive↔STATE 一致性（架构方案风险3防线，索引应可重建）。"""
+    manifest = load_manifest()
+    problems = []
+
+    state_sids, archive_sids = {}, {}
+    for pid, info in manifest["projects"].items():
+        sf = ROOT / info["path"] / "STATE.md"
+        if sf.exists():
+            for sid in _marker_sids(sf.read_text(encoding="utf-8")):
+                state_sids.setdefault(sid, []).append(pid)
+    archive_root = ROOT / "archive"
+    if archive_root.is_dir():
+        for fp in archive_root.rglob("*.md"):
+            for sid in _marker_sids(fp.read_text(encoding="utf-8")):
+                archive_sids.setdefault(sid, []).append(str(fp.relative_to(ROOT)))
+
+    for sid, paths in sorted(archive_sids.items()):
+        if len(paths) > 1:
+            problems.append("archive SID 重复 " + sid + " -> " + ", ".join(paths))
+    for sid in sorted(set(state_sids) & set(archive_sids)):
+        problems.append("STATE 与 archive 重复 SID " + sid + " (STATE: " + ", ".join(state_sids[sid]) + "; archive: " + ", ".join(archive_sids[sid]) + ")")
+
+    all_sids = set(state_sids) | set(archive_sids)
+    for pid, info in manifest["projects"].items():
+        rf = ROOT / info["path"] / "ROUTER.md"
+        if not rf.exists():
+            continue
+        for row in _router_rows(rf.read_text(encoding="utf-8")):
+            mid, ref = row["memory_id"], row["archive_ref"]
+            if ref == "STATE.md":
+                continue
+            refpath = ROOT / ref
+            if not refpath.exists():
+                problems.append(pid + " ROUTER " + mid + ": archive_ref 不存在 " + ref)
+                continue
+            seg = _archive_segment(refpath.read_text(encoding="utf-8"), mid)
+            if seg is None:
+                problems.append(pid + " ROUTER " + mid + ": 正文找不到 " + mid + " @ " + ref)
+                continue
+            sha = hashlib.sha256(seg.encode("utf-8")).hexdigest()[:16]
+            if row["sha256_16"] and sha != row["sha256_16"]:
+                problems.append(pid + " ROUTER " + mid + ": sha256_16 不匹配 期望=" + row["sha256_16"] + " 实际=" + sha)
+            for cell in (row["source_ids"], row["superseded_by"]):
+                for sidref in re.findall(r"S-\d{8}-\d+", cell):
+                    if sidref not in all_sids:
+                        problems.append(pid + " ROUTER " + mid + ": 引用 SID 不可解析 " + sidref)
+
+    if problems:
+        for p in problems:
+            print("[memory] VERIFY-FAIL " + p)
+        print("[memory] VERIFY_FAIL total=" + str(len(problems)))
+        return 1
+    print("[memory] OK router/archive/state consistent")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description="ai-hub-memory v2.1 router")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -915,6 +998,7 @@ def main():
     s = sub.add_parser("search"); s.add_argument("--project"); s.add_argument("--query")
     w = sub.add_parser("write"); w.add_argument("--project"); w.add_argument("--kind"); w.add_argument("--sid"); w.add_argument("--content")
     v = sub.add_parser("validate")
+    vf = sub.add_parser("verify")
     reg = sub.add_parser("register"); reg.add_argument("--id"); reg.add_argument("--name", default=""); reg.add_argument("--aliases", default="")
     cap = sub.add_parser("capture"); cap.add_argument("--capture-scope", required=True); cap.add_argument("--project-hint", default="UNKNOWN"); cap.add_argument("--routing-basis", default=""); cap.add_argument("--kind-hint", default="auto"); cap.add_argument("--content", required=True)
     st = sub.add_parser("status"); st.add_argument("--settler", action="store_true"); st.add_argument("--project"); st.add_argument("--capture-scope")
@@ -931,6 +1015,7 @@ def main():
     elif args.cmd == "search": cmd_search(args)
     elif args.cmd == "write": cmd_write(args)
     elif args.cmd == "validate": sys.exit(cmd_validate(args))
+    elif args.cmd == "verify": sys.exit(cmd_verify(args))
     elif args.cmd == "register": cmd_register(args)
     elif args.cmd == "sync": (cmd_sync_batch(args) if args.dir else cmd_sync(args))
     elif args.cmd == "capture": cmd_capture(args)
