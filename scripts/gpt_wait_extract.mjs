@@ -13,6 +13,7 @@ const get = (k, d) => {
 
 const SESSION = get('session', 'gptreview');
 const OUT = get('out', '');
+const TAB = get('tab', '');
 const FIRST = parseInt(get('first', '30'), 10);
 const FAST = parseInt(get('fast', '10'), 10);
 const MAX = parseInt(get('max', '14'), 10);
@@ -20,7 +21,7 @@ const MAX = parseInt(get('max', '14'), 10);
 const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];const txt=last?(last.innerText||last.textContent||'').trim():'';return JSON.stringify({stop:!!stop,count:msgs.length,len:txt.length})})()`;
 const EXTRACT = `(()=>{const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];return JSON.stringify({text:(last?(last.innerText||last.textContent||'').trim():'')})})()`;
 
-const run = js => execFileSync(NODE, [CLI, 'browser', SESSION, 'eval', js], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 30 });
+const run = js => execFileSync(NODE, [CLI, 'browser', SESSION, 'eval', js].concat(TAB ? ['--tab', TAB] : []), { encoding: 'utf8', maxBuffer: 1024 * 1024 * 30 });
 
 const parse = raw => {
   for (const l of raw.split('\n')) {
