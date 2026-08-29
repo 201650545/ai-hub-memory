@@ -1,0 +1,61 @@
+P42-REVIEW-GATE-2026 阶段4（资源控制平面）实施终审问诊。请全文实读后再裁定；回复首行与末行都原样输出令牌 P42-REVIEW-GATE-2026，并按文末输出格式作答。本文所有材料已整份内嵌，你无需访问任何外网链接。
+
+== 背景与角色 ==
+你在 2026-08-28 冻结了阶段4「资源控制平面」设计（GPT §1-13，含 12 条验收判据，会话记录 S-20260828-04）。本次问诊=对实现做终审：逐判据核对证据、裁决三个有意偏差是否可接受、给出阶段4 是否关账的结论。实现由 QoderWork Agent 于 2026-08-29 完成并经用户授权接手（租约 C-20260829-03）。
+
+== A. 实现摘要 ==
+A1. 网关侧（D:\项目\services\search_gateway，代码仓 ai-hub commit 79d3435，分支 refactor/monorepo-20260812）：
+- 新增 resource_config.py（约 505 行）：常量 LIVE_FILE/LAST_GOOD_FILE/LOG_FILE 默认 D:\项目\data\search_gateway\（env 可覆盖），SCHEMA_VERSION=1，REQUIRED_TOP/RESOURCE_REQUIRED/STATUSES(active,paused,draining,disabled)/CAP_STATES(supported,unsupported,unknown)/RID/CRED/EXP 正则/SECRET_PATTERNS。
+- 热加载器 ResourceConfigManager._maybe_reload：os.stat(mtime_ns,size) 变更→读字节→sha256 与当前比对去重→json.loads→_validate 二次校验（字段/枚举/正则/limits 键值/capabilities 三态/secret 扫描全 doc）→_build 构建 immutable snapshot→持锁指针换。live 文件消失或非法→保持内存 last-good，meta 记 failed/fail_count。成功时原子写 LAST_GOOD_FILE 落盘、reload_count+1。
+- snapshot：pair_index{(channel, unified_model 变体)}（逗号分隔拆分）、channel_res、_expiry_ts（date-only→本地 23:59:59；ISO fromisoformat）、_effective（active 且过 expiry→"expired"）。
+- channel_block(channel, model)：配对未覆盖→None（fail-open 仅限"未管理"）；覆盖且任一资源 effective=active→None；全部非 active→按优先级 resource_disabled>resource_expired>resource_paused>resource_draining 返回 (reason, resource_id)。
+- external_policy(cid)：shadow（默认）→与静态 POLICIES 对照，差异记 limits_shadow_differs（每 generation+渠道一条），返回 None（legacy 权威）；external→active 资源渠道级聚合 rules（rpm/rpd 取最严 min），空聚合返回 None。
+- external_capabilities(channel, model)：仅 caps_precedence=external 且矩阵一致性检查（与静态表全部 (channel,model) 三态 100% 一致，True=supported/False=unsupported/None=unknown）通过才返回 model_capabilities 兼容 dict（known=True, source=control_plane）；否则 None，并在 status 里记 capabilities_refused_reason。
+- status_payload()：active_generation_id/active_sha256/loaded_at/resource_count/last_reload_status/last_reload_error/reload_count/fail_count/limits_precedence/capabilities_precedence/capabilities_refused_reason/credential_refs 计数——无任何配置内容/凭证明文。
+- 挂载 api_gateway.py：import 以 try/except 可选依赖（模块缺失=全放行不阻断）；route_completion 在 capability_mismatch 检查之后、key 检查之前插入 rb=_resource_block(cid, model, real_model)，命中则 failures.append({outcome: rb[0], detail: "resource-config: "+rb[1]}) 并 continue；build_route_plan 每候选 entry 增 resource_block={reason,resource_id}|null，eligibility 链顺序 disabled→no_key→unreachable→resource_block(reason=rb[0])→capability_mismatch→blocked→quota；_needs_auth 免鉴权清单加入 /api/resource-config/status；do_GET 增该端点返回 _resource_status()。_resource_block 语义=先查 (cid, client_model) 再查 (cid, upstream_model)（客户端名优先、上游名兜底），模块缺失/异常一律放行。
+- 挂载 rate_limit.py：_resolve 开头 pol=POLICIES.get(cid) 后试 ext=_external_policy(cid)，ext 非空则覆盖 pol（external 渠道级聚合规则；shadow=None 行为与旧版完全一致）。
+- 挂载 capabilities.py：model_capabilities 开头先问 _external_capabilities，非 None 直接返回；否则走原静态声明链。
+A2. 控制面（D:\ai-resource-hub\control_plane，资源仓 commit bdf0cb3）：
+- 新增 publish.py：publish(candidate, wait_ack=10) → validate_candidate fail-closed（invalid→不发布 exit!=0）→若 live 存在且 canonical_sha256 相同→noop_same_sha 幂等→否则读前代字节 prev_bytes→json.dumps(ensure_ascii=False, indent=2) 经 _atomic_write（tmp.<pid>→flush→fsync→os.replace）原子替换 live→前代归档 resource_history/<gen>.json（保留 20 份 prune）→轮询 GET http://127.0.0.1:3100/api/resource-config/status（≤wait_ack 秒）直到 active_generation_id==新 gen→ACK 成功 publish_status=published；超时→os.replace 回滚 prev_bytes（publish_status=rolled_back）或无前代 unlink（rolled_back_no_previous）。rollback_previous()=回退到最近一个非当前 generation 的历史。CLI：publish/rollback --previous/status 三子命令。
+- sync.py 重写：run_once(fetch→dedup→normalize→compile→validate)，invalid→exit 1 不发布；--publish 时调 publish；--loop [秒] 默认 60s+0-10s 抖动常驻，异常不退出；--publish 与 --dry-run 互斥。
+A3. 单元测试：网关侧 tests/test_resource_config.py 16 例（无配置放行/配对 gating/逗号变体/expiry 四态/优先级序/非法 live 保持 last-good/live 消失保持 last-good/7 类非法生成物拒绝+secret 扫描/limits shadow+shadow 差异日志/limits external 最严聚合/caps static/caps external+矩阵门拒绝路径/status 无泄漏/代际热切换/三模块挂载点 stub 联动）。控制面 tests/test_control_plane_publish.py 9 例（invalid fail-closed/不可读 candidate/首发 ACK/二次发布归档/noop_same_sha/ACK 超时回滚逐字节比对/无前代回滚删残留/rollback_previous/历史 20 份剪枝；mock 状态端点）。回归：控制面存量 26/26、网关 P1.1 路由不变量 35/35、BIND 11/11 全过；quota 套件 4/5，唯一失败=deepseek 上游 401（key 失效，既有环境问题；git 显示当时工作树仅本线 5 文件，且新代码尚未被运行中服务加载，与本改动无关）。
+
+== B. 12 判据逐条证据 ==
+1. 唯一真源 writer_count=1：阶段4 范围内 live 文件唯一写者=publish.py 的 _atomic_write（scheduler 化常驻属阶段5，未启用；无第二写者）。附：resource_config DATA_DIR 初版误算成 services\data（少一层），与 rate_limit/publish 口径不符——演练前程序化核对拦截，已修复并 py_compile+单测复验。
+2. revision→candidate 可重复：P4.1 已交付 compile 确定性（canonical_content= schema_version+table_revisions+resources，build_candidate 附 generation_id/generated_at/canonical_sha256/source），由存量 26/26 中确定性用例覆盖；同一 revision 两次 compile sha 相等。
+3. Validator fail-closed：发布侧 8 类错误类（缺字段/duplicate/非法枚举/capability 矛盾/credential 缺失/secret 形态/类型错误/expiry 格式）+publish 层 invalid_candidate 不发布（单测 9 例中 2 例直接覆盖）；网关侧二次校验独立实现，7 类 fixture 单测覆盖（含 secret 扫描 sk- 形态、cred 字段格式）。
+4. Credential 解析+secret 不进控制面：发布侧 validate_candidate 扫描 candidate（secret_findings=0 才发布）；网关侧 _validate 对整 doc 正则扫描 SECRET_PATTERNS，命中即拒载；credential_refs 在 status 中只输出计数（total/resolved），不出 ref 明文。真实 candidate 16 资源 credential_ref 均为 cred:acc-* 账户级（非 per-key），网关侧解析=按渠道名计数（warn 级），不做拒载——见偏差 D2。
+5. Hot reload 不重启：实机演练全程服务 PID 40920 不变（详见 D 节），发布→ACK→gating 生效全程无进程重启。
+6. status 真实影响路由：演练用真实数据配对 (modelscope, Qwen/Qwen2.5-72B-Instruct)（candidate 中飞书状态=paused）：GET /api/route-plan?model=Qwen%2FQwen2.5-72B-Instruct → modelscope 候选 eligible=false、reason=resource_paused、resource_block.resource_id=cap-modelscope-01；发布空 resources 收尾后同请求 resource_block=null。对照配对 (xiaohongshu, dots3-note-prev)（演练 candidate 中置 active）全程放行 eligible=true。Python 源码 diff=0（全程未改代码）。
+7. expiry 真实影响路由：单测级证明（test_04：date-only 过去→resource_expired；未来→放行；ISO 过去→resource_expired；另 test_02/03 配对级）。实机未单独演练 expiry 资源（零变更纪律下未注入过期测试资源；gating 与 expiry 共用同一 channel_block 出口，代码路径同判据 6）。
+8. limit policy 无代码修改生效：external_policy 已实现（渠道级 min 聚合 rules，test_10 断言 scope=channel/window 60=min(30,10)/window 86400=100/source=control_plane）；实机未翻转 external（默认 shadow=零行为变更，翻转属阶段5 P4.7 切换步骡）。rate_limit.py 本阶段确实被触碰（加挂载点）但策略值零修改；PID 不变已证。
+9. capability 无代码修改生效：external_capabilities+矩阵门实现（test_12：一致→source=control_plane；tools 不一致→拒绝切换+capabilities_refused_reason 含 tools）；实机未翻转（矩阵门在真实静态表下会正确拒绝，属保守设计）。
+10. 非法热加载不污染：演练向 live 注入 '{"broken":' 后 status last_reload_status=failed、active_generation_id 保持旧值、fail_count=1、route-plan 判定持续（last-good 生效）、healthz/status 端点持续 200、PID 不变。单测 test_06/test_07 同路径（corrupt+文件消失）。
+11. 原子发布无 torn config：机制=tmp+fsync+os.replace（发布侧与网关 last-good 落盘同法）；publish 单测含逐字节回滚比对。实机未做"并发持续 route-plan+连续 N 代发布"循环——用户明令禁止人工压力测试（只许 wire 证据或真实使用自然落盘），且 os.replace 的 POSIX/NTFS 原子性保证 watcher 只见完整旧代或完整新代。请裁决此替代证据是否可接受（R4）。
+12. 全阶段回归+否定性证明：网关 16/16 新增+35/35 存量+11/11 BIND；控制面 9/9 新增+26/26 存量；invalid publish 计数（演练中 0 次进入正式发布流，fail-closed 路径由单测覆盖）；reload failure injection evidence=演练第 6/7 判据（fail_count=1、gen 不变）；secret-scan finding_count=0；test_search_gateway_routing.py 35/35 exit 0 未删未改。
+
+== C. 有意偏差（请逐条裁决） ==
+D1. 配对级 (channel, unified_model) 精确 gating，不做渠道级 fallback：理由=真实 candidate 中 modelscope/dashscope 渠道资源大部分 paused 而这两渠道在生产链上（deepseek-v4-flash 兜底链），渠道级封锁会首次发布即断生产。附实测：全量枚举生产路由（model_providers full=True ∪ DEFAULT_CHAIN default_model，限 enabled+key+reachable 渠道）与真实 candidate 非 active 配对交集={(dashscope, qwen3.8-flash)}——即真实 candidate 现状发布会产生这一处生产行为变更（该资源飞书状态=暂停、生产链在用，二者矛盾）。
+D2. credential_ref 为账户级 cred:acc-*（飞书资源表结构决定，非 per-key）：网关侧解析=渠道名匹配计数（status.credential_refs total/resolved），不拒载；拒载会让任何账户级引用的合法 candidate 无法上线。发布侧 fail-closed 不变。
+D3. precedence 旋钮放生成物顶层（limits_precedence: shadow|external 默认 shadow；capabilities_precedence: static|external 默认 static）：热加载随代切换无需重启，默认值=零行为变更。
+
+== D. 实机 12 判据演练记录（2026-08-29，对运行中 :3100 服务） ==
+准备：drill candidate=真实 candidate 深拷贝+cap-aliyun-01 临时置 active（消除 C 节实测的唯一生产交集）+追加 res-drill-001(xiaohongshu/dots3-note-prev, active, 验证配对任一 active 即放行)；零变更断言=非 active 配对∩生产危险集=∅ 程序化通过；封禁演示靶选 (modelscope, Qwen/Qwen2.5-72B-Instruct)（非显式路由 providers(full)=[]、非任何渠道 default_model、飞书本就 paused）。一次 UAC 提权重启加载新代码（PID 26480→40920），其后全程无重启。
+步骤与结果（全部 PASS）：①重启后 status= no_file 基线 ②publish drill→published+ACK=true ③status active_generation_id=20260829T-drill0001、resource_count=17 ④route-plan(modelscope, Qwen/Qwen2.5-72B-Instruct)→reason=resource_paused、resource_id=cap-modelscope-01 ⑤route-plan(dots3-note-prev)→xiaohongshu eligible=true、resource_block=null（生产配对放行）⑥live 注入非法 JSON→status failed+gen 不变+fail_count=1 ⑦route-plan 判定持续=resource_paused（last-good）⑧PID 40920 不变 ⑨publish 空 candidate→published、resource_count=0、gen=20260829T-drill-empty ⑩route-plan 同靶 resource_block=null ⑪resource_history 含 20260829T-drill0001.json 与 20260829T-drill-empty.json 双代归档 ⑫PID 仍 40920。收尾态：live=空 generation（0 资源=无 gating 基线），等待真实 candidate 经用户拍板后发布。
+补充事实：dots3-note-prev 实测为生产显式模型（笔记预览，xiaohongshu+zenmux 双渠道 full=True 可达）——原演练计划误将其作封禁靶，实测后否决改用 modelscope 靶，未对生产造成任何影响。
+
+== E. 请裁决的问题 ==
+R1. 判据 6 的演练靶与证据链是否满足「status 真实影响路由」？（含恢复步骡：空发布后放行）
+R2. 判据 7/8/9 目前=单测级证据+机制就位，实机翻转因零变更纪律与矩阵门保守性未执行。接受现状关账，还是要求某个最小实机补充动作（如注入临时 expiry 资源的演练代）？
+R3. 偏差 D2（credential 账户级→网关计数不拒载）是否可接受？还是要求发布侧增加 per-key 展开能力（阶段5 范围）？
+R4. 判据 11 以 os.replace 原子性+发布单测替代"并发发布+持续 route-plan"实机循环（用户禁人工压力测试）。此替代是否满足判据？
+R5. (dashscope, qwen3.8-flash) 生产交集处置建议排序：a) 飞书把 cap-aliyun-01 改回 active（生产事实优先）b) 接受发布后 qwen3.8-flash 在 dashscope 的 local-skip（failover 链承接）c) 发布时剔除该资源。哪个风险最小？
+R6. 阶段5（资源接入流水线：sync --loop 常驻+scheduler 化+watchdog）与阶段6（webbridge）的实施顺序与风险点，给出建议。
+
+== 输出格式 ==
+首行：P42-REVIEW-GATE-2026
+第二部分：判据 1-12 逐条 PASS/PARTIAL/FAIL + 一句话理由
+第三部分：D1/D2/D3 逐条 接受/有条件接受/驳回 + 条件
+第四部分：R1-R6 逐条回答
+第五部分：总裁决（阶段4 关账 / 有条件关账列出必改项 / 不通过）与最小必改清单
+末行：P42-REVIEW-GATE-2026

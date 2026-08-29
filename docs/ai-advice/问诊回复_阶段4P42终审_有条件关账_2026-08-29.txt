@@ -1,0 +1,63 @@
+P42-REVIEW-GATE-2026
+
+判据 1–12
+#	裁定	一句话理由
+1	PASS	live 配置在阶段4范围内只有 publish.py 一个写入路径，且 DATA_DIR 偏差已在演练前修正并复验，没有形成双 writer。
+2	PASS	canonical 内容与易变元数据分离，同 revision 重编译 SHA 一致，已有确定性回归证据。
+3	PASS	发布前 fail-closed validator 与网关独立二次校验同时存在，错误覆盖面足以证明非法代际不会进入生效态。
+4	PARTIAL	secret 不落控制面、非法 secret 拒绝、status 不泄漏均闭环；但当前所谓 credential resolved 实际只是“按渠道可映射计数”，并非真实 credential resolution，语义尚未完全满足判据字面。
+5	PASS	实机发布、ACK、gating、恢复过程中 PID 40920 不变，直接证明热加载无需重启。
+6	PASS	同一运行实例上，发布前后 route-plan 从 resource_paused 恢复到 resource_block=null，并有 active 对照组，已形成完整 wire 闭环。
+7	PARTIAL	expiry 的 date/ISO、过去/未来以及路由出口已有充分单测，但尚缺运行态端到端证明“过期→route-plan blocked→恢复”。
+8	PASS	external limits 的聚合、precedence 和 rate-limit 挂载已由测试证明，运行时只需生成物翻转即可生效；默认 shadow 未实机翻转是上线纪律，不是机制缺口。
+9	PASS	external capabilities 与 100% 矩阵一致性门均有正反测试，配置翻转不需要再次修改代码；真实环境拒绝切换本身符合设计的保守语义。
+10	PASS	非法 live 已做实机故障注入，generation 保持、fail_count 增加、last-good 路由持续、服务/PID 均正常。
+11	PASS	同目录临时文件 + flush/fsync + os.replace 已满足“读者只观察完整旧代或完整新代”的原子替换目标，配合回滚逐字节单测足以替代被禁止的人工压力循环。
+12	PASS	新增测试、既有路由/BIND/控制面回归均通过；唯一 quota 失败为既有上游 401，现有证据足以将其排除出本次变更归因。
+D1 / D2 / D3
+
+D1：接受。 精确到 (channel, unified_model) 的 gating 比渠道级 fallback 更符合当前资源表实际粒度，也避免一个 paused 资源把整个生产渠道误封。条件是继续维持“未管理 pair fail-open、已管理 pair fail-closed”的边界，并在正式真实 candidate 发布前处理 (dashscope, qwen3.8-flash) 的源数据冲突。不要补做渠道级 fallback。
+
+D2：有条件接受。 cred:acc-* 作为账户级 opaque reference 本身可以接受，不要求阶段4补做 per-key 展开，那可以留到阶段5。条件是不能把“渠道名匹配”对外称为真正的 resolved：要么把 status 指标改成诸如 mapped / recognized，要么让 resolved 真正检查运行时 credential provider 是否存在可用凭据。这里的问题是可观测性语义，而不是必须改变 gating 行为。
+
+D3：接受。 precedence 位于生成物顶层、跟随 generation 原子切换，并且 shadow/static 为默认零行为改变，这正适合控制平面的渐进接管。建议后续保持枚举封闭，禁止出现隐式第三态或缺省值漂移。
+
+R1–R6
+
+R1：满足。 判据6的证据链是完整的：先加载有资源 generation，status 明确确认 active generation；随后同一 PID 上 route-plan 对目标 pair 给出 resource_paused + resource_id；非法配置注入后仍由 last-good 保持相同判定；最后发布空 generation 并 ACK 后，同一目标恢复 resource_block=null。这已经不是“status 与路由碰巧同时变化”，而是 generation→snapshot→route-plan→恢复的闭环。选用非生产 modelscope 靶而放弃 dots3-note-prev，反而增强了演练有效性。
+
+R2：我不要求为 8、9 再做生产实机翻转，但建议在关账前给判据7补一个最小 wire 证据。 8 的 external limits 真正翻转会改变配额行为，9 在真实矩阵下又预期被安全门拒绝；为了“证明已经证明”而在生产环境改变它们，收益低于风险，现有模块级正反测试足够。判据7不同：其验收语义直接是 expiry 影响路由，而且可以用与本次 drill 同样的无生产靶、单一临时 generation 完成，不涉及压力测试。最小动作就是：发布一个非生产 pair 的已过期资源→确认 status ACK→route-plan=resource_expired→发布空 generation→确认恢复。PID 保持不变即可，不需要循环压测。
+
+R3：D2 可以接受账户级 ref，不要求阶段4实现 per-key 展开。 但应修正 resolved 的语义。真正危险的不是 account-level reference，而是 status 对操作者暗示“凭据已经成功解析”，实际却只证明“能找到同名渠道”。因此我会把“修正/明确 credential_refs 可观测性”列为阶段4的必改项，而把 per-key 展开明确放入阶段5。
+
+R4：满足判据11。 这里的目标是防 torn config，不是做吞吐或竞争压力认证。同文件系统上的原子 rename/replace 是正确的实现原语；watcher 又先读完整字节、算 SHA、JSON parse、validate、build，最后才换内存指针，因此即使文件事件发生在替换边界，最坏也是读旧代或新代，而不会把半份 JSON 变成 active snapshot。人工并发压力循环只是增强证据，不是这个性质的必要证明。需要注意：这是“原子可见性”的结论，不应扩大表述成“断电情况下绝对持久化无损”。
+
+R5：风险排序我建议 a > c > b。
+
+首选 a）把飞书的 cap-aliyun-01 恢复为 active，前提是资源实际可用且由资源所有者确认。这里已经有生产事实与飞书状态冲突，最小风险做法是修正真源，而不是让控制平面适配错误数据。
+
+第二是 c）暂时剔除该资源，但只能作为显式、可审计、短期 quarantine；不能人工静默过滤，否则会破坏“revision→candidate 可重复”和唯一真源的可信度。若采用，应留下明确异常原因和到期条件。
+
+最后才是 b）接受 dashscope local-skip。它把一个已知“配置与生产事实不一致”的问题直接转化成生产路由行为改变，并依赖 failover 链替你吸收错误，风险最大。即使 failover 当前可靠，也不应把它作为数据冲突的第一解决方案。
+
+R6：建议严格按“阶段5先于阶段6”实施。 阶段5应先把现有一次性控制平面变成可靠的持续供给链：sync --loop 进正式 scheduler、单实例/租约约束、进程 watchdog、失败退避与抖动、连续失败告警、publish ACK/rollback 观测、禁止多 writer、重启后的 generation/last-good 恢复，以及避免坏上游数据形成高速 publish/rollback 振荡。
+
+阶段6 webbridge 应建立在阶段5已经稳定的 writer 与发布协议之上，否则 webbridge 一旦引入新的写入口、人工操作或远程触发，很容易重新破坏判据1的单 writer、绕过 validator，或者与 scheduler 形成竞争发布。阶段6尤其要守住三个边界：webbridge 不直接写 live、不能绕过 compile/validate/publish、所有变更必须带 revision/generation/audit identity。也就是说 webbridge 应调用控制面事务，而不是成为第二个控制面。
+
+总裁决
+
+有条件关账。
+
+阶段4的核心架构已经成立：单 writer、确定性生成、双层 fail-closed 校验、last-good 热加载、实际路由 gating、原子发布与 ACK/rollback，以及默认零行为改变的 limits/capabilities 接管机制，都已经有足够证据。D1、D3 不构成偏差性阻断；D2 也不要求把阶段5的 per-key 能力提前搬回来。
+
+最小必改清单只有两项：
+
+修正 credential status 的语义。 不得继续把“渠道名可映射”无条件称为 resolved；改名或做真正 runtime credential existence resolution，二选一。无需增加 per-key expansion。
+
+补判据7的一次最小无生产影响 wire 演练。 用非生产 pair 发布已过期资源，证明 resource_expired，再发布空 generation 恢复；无需为 limits/capabilities 做生产实机翻转，也无需补并发压力测试。
+
+另外，真实 candidate 正式发布前必须先解决 (dashscope, qwen3.8-flash) 的数据矛盾，首选修正飞书状态为真实 active；这属于上线前数据准入条件，不要求修改阶段4架构代码。
+
+完成上述两项后，我会把判据4、7提升为 PASS，阶段4即可正式关账；阶段5随后接 scheduler/watchdog，阶段6再接 webbridge。
+
+P42-REVIEW-GATE-2026
