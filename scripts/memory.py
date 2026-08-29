@@ -995,10 +995,13 @@ def _load_claims():
     claims = {}
     if CLAIMS_DIR.is_dir():
         for fp in sorted(CLAIMS_DIR.rglob("*.md")):
+            if not fp.name.startswith("C-"):
+                continue
             t = fp.read_text(encoding="utf-8")
             m = re.search(r"^claim_id:\s*(\S+)", t, re.M)
-            cid = m.group(1) if m else fp.stem
-            claims[cid] = (str(fp.relative_to(ROOT)), t)
+            if not m:
+                continue
+            claims[m.group(1)] = (str(fp.relative_to(ROOT)), t)
     return claims
 
 

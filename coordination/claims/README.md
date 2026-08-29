@@ -24,9 +24,9 @@ python scripts/memory.py claim --action settle --claim-id C-20260829-01
 `YYYY-MM 不分组，直接放本目录`：`C-YYYYMMDD-NN.md`
 
 ```
-claim_id: C-20260829-01
-project: ai-resources
-subject_key: provider:zenmux:pricing
+claim_id: C-YYYYMMDD-NN
+project: <项目线>
+subject_key: <provider:渠道:主题>
 task: ...
 owner: session-xxx
 claimed_at: 2026-08-29T00:00:00Z
