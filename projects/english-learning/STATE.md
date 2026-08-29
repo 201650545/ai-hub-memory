@@ -4,6 +4,7 @@
 - 无。
 
 ## 已完成（最近）
+- **[S-20260828-01]** 记忆架构 Phase M2 扩展：english-learning 建 MEMORY.md + ROUTER.md（2026-08-28）。①新建 projects/english-learning/MEMORY.md 稳定知识层（四节：系统架构/记忆策略 FSRS+消退提示/口语训练闭环/复习方法论），把 5 条 STATE 条目中反复验证的稳定结论提炼入 MEMORY。②新建 projects/english-learning/ROUTER.md 冷记忆路由索引骨架（索引表暂空——现有 5 条均处活跃期无归档批次）。③tier-plan 复核：keep-hot 4 (87.8%) / warm 0 / archive 0，全部合理。④按方案 M2 剩余：english-teaching / memory-system / nitian-theme 逐项目扩展；courseware / teaching 无 S- 条目暂缓。（凭证只写是否存在，无值）（2026-08-28）
 - **[S-20260821-01]** [S-20260821-01] 英语学习进展与口语闭环方案（2026-08-21）  复习进展：Stage1翻译筛词复习31词；clinic 答错退回阶段0待次日复测；阶段0新学12词(child/lot/across/grade/grain/grant/hint/hip/holy/horn/illegal/immediate)并完成当日到期复习。  口语训练新闭环（取代已废弃的本地 faster-whisper 网页方案）：用户每天在豆包APP指定会话做英语语音口语练习；两个定时任务——早6:00发布当天三段式课程提示词(让它做什么/主题目标/具体要求)到固定会话，凌晨0:00读该会话豆包生成的今日汇报并把困难词幂等写入飞书词表。现已用 TraeWork Browser Extension 驱动用户真实Chrome连通豆包(已登录)并置顶固定会话。写飞书用本机npm全局lark-cli，record-search 精确查重防重复。GPT镜像站(ai问答宝)可用 opencli browser 打开+extract 读取。（2026-08-21）
 - **[S-20260814-04]** # FSRS 调度字段已落地（记忆策略 v1，2026-08-11）
 
