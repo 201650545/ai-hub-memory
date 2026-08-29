@@ -73,6 +73,13 @@
 - **会话纪律（用户拍板 2026-08-15，2026-08-27 修订窗口轮次上限，强制）**：① 进入镜像站后**复用左侧历史会话**（点历史记录进入，不新开对话），再调模型为 Thinking·Extended；② **每个任务 ≤3 轮对答**完成（含 GPT 反问的交流，3 轮内必须解决回来执行）；③ **每窗口 ≤12 轮**，超了必须新开对话（新开后重新选模型）。详细步骤见 ai-resource-hub 操作手册 01 §9。
 - **镜像站故障处理（2026-08-28 修订，D-GLOBAL-20260828-01：停用 Kimi 自动兜底）**：GPT 镜像站不可用/空回复/需第二意见时，**不自动转 Kimi**——直接向用户报告：故障现象、已尝试的账号与会话、建议动作（换账号/换会话/稍后重试），等用户指示。Kimi K3 仅在用户主动要求时使用。历史：2026-08-15~27 曾用 Kimi K3 自动兜底（D-GLOBAL-20260815-04，已废止）。：Claude 额度已用光，问诊兜底不再走 Claude。GPT 镜像站不可用/空回复/需第二意见时 → `opencli browser <s> open kimi.com`，提问前先开启 **K3 思考进阶模式**（界面找 K3 模型/进阶模式开关），再发送问题；长提示词同样 base64 + eval 注入。
 
+- **`browser screenshot` 两个实测坑（2026-08-29，DSH 侧「截图失效」排障结论）**：
+  ① **必须传 `path` 落盘**：省略位置参数时命令把整张 PNG 以 base64 直写 stdout（实测飞书 Base 页面 **886 KB** 单行），既塞爆 Agent 上下文又易被宿主管道截断。用法 `opencli browser <s> screenshot "<file>.png" --tab <id>`。
+  ② **`cdp_timeout` 会间歇触发**：`Page.captureScreenshot` 默认超时 **60 秒**（`dist/src/browser/config.js` 的 `DEFAULT_BROWSER_COMMAND_TIMEOUT=60`）。重型页面在 `devicePixelRatio=2` 下光栅为 3200×1550（约 5 Mpx），实测**同一标签页一次 5s 成功、一次 >60s 超时**，报 `CDP command Page.captureScreenshot timed out after 60s`。opencli 在 `browser/errors.js` 把 `cdp_timeout` 标为 **non-retryable**，宿主不会自动重试，表现为「命令挂住后无结果」。
+  处置优先级：用 `--width/--height` 降光栅（实测同一页 1280×720 立即成功）→ 需要大图时加 `--timeout <秒>`（或全局环境变量 `OPENCLI_BROWSER_COMMAND_TIMEOUT`）→ 治本是自动化 Chrome 启动加 `--force-device-scale-factor=1` 把光栅减半，但这会影响共享浏览器实例，须先确认无其他 Agent 在用。
+  **已排除的错误归因（勿再重复排查）**：与运行账户无关——DSH 宿主虽以 SYSTEM 运行（node 监听 3080），但把 `HOME/USERPROFILE/APPDATA/LOCALAPPDATA/TEMP` 全部指向空目录后，`tab list` 与 `screenshot` 依旧正常，说明会话发现不依赖用户 profile 注册表；`tab list` 报 `active=False` 也不影响截图。
+- **STOP**：截图报 `cdp_timeout` 不要盲目重跑，先降视口或加 `--timeout`；反复失败才考虑页面被原生对话框阻塞（用 `browser dialog` 处理）。
+
 ## 5. 统一 AI 搜索网关（:3000）
 - 用途：4 大 AI 搜索（元宝/Kimi/秘塔/豆包）并发 + LLM 渠道聚合（DeepSeek 官方/Gemini/OpenRouter）。
 - Preflight：GET /api/health（各引擎 + 上游状态）。
