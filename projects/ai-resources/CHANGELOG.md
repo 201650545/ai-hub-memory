@@ -34,3 +34,4 @@
 - S-20260829-23 价格闸门设计稿升 v0.5＝定稿（零代码改动）。用户第三轮拍板：M1-M5 五条全采纳（决策源 D-20260829-0（2026-08-29，脚本自动记录）
 - S-20260829-24 阶段4 P4.2 完成：publish.py 原子发布+ACK 回滚，:3100 resource_config 热加载消费端（配对级 gating+last-good），实机 12 判据 12/12，真实 candidate 的 dashscope/qwen3.8-flash 冲突挂起待用户拍板（2026-08-29）
 - S-20260829-25 阶段4正式关账：GPT 终审两项必改落地（credential resolved→mapped/unmapped+semantics；判据7 wire 演练 resource_expired→空代恢复 PID 36440 不变），判据4/7 提升 PASS；遗留=真实 candidate 前 dashscope 数据矛盾待拍板（2026-08-29）
+- S-20260829-26 :3100 价格闸门 P1 四步交付完成（纯增量、零接线，网关运行行为与今天完全一致）。①交付物：data/search（2026-08-29，脚本自动记录）
