@@ -65,3 +65,7 @@
 - S-20260830-03 豆包 adapter 修复 ask 提取截断（文本稳定检测，done 后 2 次相同才返回；新版 textEl 无 div[dir]、indicator 在 textEl 外）（2026-08-30）
 - S-20260830-04 B 类程序委派验证通过：Qoder CLI 分析脚本 / Trae 写码并存文件 / 豆包问答（2026-08-30）
 - D-20260830-01 决策：不买付费 AI 订阅（评估 Codex Plus 代充 ~145元/月 vs 中转站 88元/300刀 后放弃），免费渠道+积分+镜像版 GPT-5.6 够用（2026-08-30）
+- S-20260830-05 火山方舟 Coding Plan Pro 套餐（49.9元/月）接入网关：拆 3 渠道 coding-flash/coding-glm/coding-pro（DeepSeek-V4-Flash/GLM-5.3-Flash/DeepSeek-V4-Pro），OpenAI 兼容端点 https://ark.cn-beijing.volces.com/api/coding/v3（⚠️勿用 /api/v3 会额外扣费），unified 组 coding-plan（付费 rank 不抢免费链），实测转发成功（deepseek-v4-flash→GA 正式版）（2026-08-30）
+- S-20260830-06 CC Switch 直连渠道：provider「火山方舟 Coding」=Anthropic 端点 /api/coding + coding 专用 key（与模型服务 key 不同）+ 3 模型，apiFormat=anthropic，已写入 cc-switch.db（重启 CC Switch 生效）（2026-08-30）
+- S-20260830-07 网关统一剥离 reasoning_content（用户拍板）：魔塔 DeepSeek V4 Pro 输出断续根因=thinking 逐 token 流式透传（实测 max_tokens=30 时 content 空/思考占满）；api_gateway.py 新增 _strip_reasoning_json + _SseReasoningStripper（SSE 逐行剥离，跨 chunk 容错），重启后实测 SSE 已无 reasoning_content（2026-08-30）
+- D-20260830-02 拍板：网关统一剥离思考（所有渠道 reasoning_content 不再透传，只透传正文；thinking 期间客户端静默等正文）（2026-08-30）
