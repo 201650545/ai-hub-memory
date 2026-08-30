@@ -60,3 +60,4 @@
 - [归档] DROP S-20260827-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260827-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260825-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- S-20260830-01 Claude 调度大脑接入（2026-08-30）：①三项同步打通——ai-hub-memory 5 项目 STATE 超限按官方流程归档 archive/projects/<p>/2026/ + ROUTER 登记 + CHANGELOG DROP，pre-commit 恢复通过；sync_all.py 三端同步全绿（ai-resource-hub/feishu-data-hub/ai-hub-memory pull+push ok）。②调度接入规范已建 ai-resource-hub docs/Claude调度大脑_接入规范_2026-08-30.md：资源库地图（飞书9表/本地凭证/网关:3100/调度器:8789）、查库命令（lark-cli base +record-list）、分配规则（免费优先/模型锁定/额度到点停/编排优先）、回写与三端同步。③分配链路验证：:3100 deepseek-free 调用成功（路由到实际渠道返回回复）。④Trae 全自动对话（opencli trae-solo open-task/send）作为桌面执行器接入，模型锁定 DeepSeek V4 Flash 正式版。（2026-08-30）
