@@ -4,14 +4,14 @@
 - 无。
 
 ## 已完成（最近）
-- **[S-20260829-28]**  价格闸门 P2 走向定案：改做缩窄版纯观测并已生效。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-27]**  阶段5 控制平面实施关账（用户授权「你都完成啊」延续，租约 C-20260830-01）。①核心落地（评审 S5-PIPELINE-DESIGN-2026 全采纳，镜像 GPT 。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-26]**  :3100 价格闸门 P1 四步交付完成（纯增量、零接线，网关运行行为与今天完全一致）。①交付物：data/search_gateway/model_pricing.json 初。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-25]**  阶段4正式关账：GPT Extended 终审两项必改全部落地（租约 C-20260829-04）。①终审回收：镜像 SOP（vip-19 Extended，令牌 P42-REV。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-24]**  阶段4 P4.2 完成：原子发布 + :3100 消费端 + 热加载 last-good（用户口头授权「你都完成啊」接手网关线 P4.2/阶段5/6 执行，租约 C-202608。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-23]**  价格闸门设计稿升 v0.5＝定稿（零代码改动）。用户第三轮拍板：M1-M5 五条全采纳（决策源 D-20260829-03），据此改写文档正文：§4.2 组展开由「不经价格判定」。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-22]**  价格闸门 v0.4 定稿的 GPT-5.6 Extended 复核第 1/3 轮成功回收（vip-19 新实例，取代昨日退化的 vip-12；本任务首次真正读到该设计的 GPT）。详情见 git 历史 + archive（SID 可溯）。
-- **[S-20260829-21]**  价格闸门设计稿升 v0.4＝设计定稿（零代码改动）。用户对评审 N1-N4 四条全部采纳评审推荐（决策源 D-20260829-02）：①N1 PRICING_MODE=off|。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260830-10]** 网关进程改普通权限运行，重启**免 UAC**（用户被反复 UAC 骚扰）：根因=早前用 `Start-Process -Verb RunAs` 启动 python 致网关提权、普通杀它必 Access denied、每次重启都弹 UAC 恶性循环；修复=一次性提权只**杀**旧提权进程 + **普通权限**启动新网关，实测普通 Stop-Process 可杀可启；正确重启姿势已写入 project_ai_gateway 记忆（禁止 -Verb RunAs 启动 python）。（2026-08-30）
+- **[S-20260830-09]** ark 与 ark-flash 合并（用户：只用 ark 免费额度 + coding 套餐）——ark-flash 渠道删除，GA 模型并入内置 ark 渠道（channels.py models 加 deepseek-v4-flash-ga-260731 / pro-ga-260813，note 注明合并）；deepseek-free 组 9→8 成员（删 ark-flash），flash-ga 按模型名直调（包含搜索优先走 ark 免费）；渠道总数 20→19，火山方舟只剩 ark(免费)/ark-coding(套餐)。（2026-08-30）
+- **[S-20260830-08]** 修正 S-20260830-05：coding 套餐渠道合并为**单渠道 ark-coding**（用户纠正「一个厂商的 3 个模型就一个渠道，别拆 3 渠道」）——models=[deepseek-v4-flash, glm-5.3-flash, deepseek-v4-pro]，base /api/coding/v3；unified 组 coding-plan={ark-coding: deepseek-v4-flash}，GLM/V4-Pro 按模型名直调；**新增编排组 glm-5.3-flash**={opencode→ark-coding}（openrouter/zenmux 收钱已剔除），实测 glm-5.3-flash 在 ark-coding 链路通。（2026-08-30）
+- **[S-20260830-07]** 网关统一剥离 reasoning_content（用户拍板）：魔塔 DeepSeek V4 Pro 输出断续根因=thinking 逐 token 流式透传（实测 max_tokens=30 时 content 空/思考占满）；api_gateway.py 新增 _strip_reasoning_json + _SseReasoningStripper（SSE 逐行剥离，跨 chunk 容错），重启后实测 SSE 已无 reasoning_content。（2026-08-30）
+- **[S-20260830-06]** CC Switch 直连渠道：provider「火山方舟 Coding」=Anthropic 端点 /api/coding + coding 专用 key（与模型服务 key 不同）+ 3 模型，apiFormat=anthropic，已写入 cc-switch.db（重启 CC Switch 生效）。（2026-08-30）
+- **[S-20260830-05]** 火山方舟 Coding Plan Pro 套餐（49.9元/月）接入网关：OpenAI 兼容端点 https://ark.cn-beijing.volces.com/api/coding/v3（⚠️勿用 /api/v3 会额外扣费），unified 组 coding-plan，实测转发成功（deepseek-v4-flash→GA 正式版）。（2026-08-30）
+- **[S-20260830-04]** B 类程序委派验证通过：Qoder CLI 分析脚本 / Trae 写码并存文件 / 豆包问答。（2026-08-30）
+- **[S-20260830-03]** 豆包 adapter 修复 ask 提取截断（文本稳定检测，done 后 2 次相同才返回；新版 textEl 无 div[dir]、indicator 在 textEl 外）。（2026-08-30）
 
 ## 卡点
 - 无。
