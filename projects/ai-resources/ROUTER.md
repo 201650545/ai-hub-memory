@@ -50,3 +50,4 @@
 2. 不在本表写结论、不写长摘要。
 3. `sha256_16` 迁移前后必须一致（不一致说明正文被改写，判迁移失败）。
 4. STATE.md 中的活跃条目无需在上表重复索引（它们直接在 STATE 可见）。
+| archive-ai-resources-20260830 | incident | ai-resources-state-archive | ai-resources | 2026-08 | resolved | archive/projects/ai-resources/2026/2026-08.md | S-20260825-01..S-20260829-20 | | |

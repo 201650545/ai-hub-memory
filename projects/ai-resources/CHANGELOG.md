@@ -36,3 +36,27 @@
 - S-20260829-25 阶段4正式关账：GPT 终审两项必改落地（credential resolved→mapped/unmapped+semantics；判据7 wire 演练 resource_expired→空代恢复 PID 36440 不变），判据4/7 提升 PASS；遗留=真实 candidate 前 dashscope 数据矛盾待拍板（2026-08-29）
 - S-20260829-26 :3100 价格闸门 P1 四步交付完成（纯增量、零接线，网关运行行为与今天完全一致）。①交付物：data/search（2026-08-29，脚本自动记录）
 - S-20260829-28 价格闸门 P2 走向定案：改做缩窄版纯观测并已生效（2026-08-29）①ROI 拍板：用户看完真实对账后否掉原 P2（2026-08-29，脚本自动记录）
+- [归档] DROP S-20260829-20 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-19 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-18 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-17 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-16 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-15 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-14 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-13 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-12 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-11 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-10 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-09 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-08 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-03 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260829-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）

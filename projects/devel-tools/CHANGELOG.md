@@ -46,3 +46,30 @@
 - S-20260829-01 - **[S-20260829-01]** 阶段4 Step 0 + P4.1（Canonical Model + dr（2026-08-28，脚本自动记录）
 - S-20260829-02 镜像站问诊台账 + SOP 脚本修复（服务价格闸门评审）。①gpt_wait_extract.mjs 缺陷修复：NODE（2026-08-29，脚本自动记录）
 - S-20260829-03 镜像站共享会话冲突修复与 --tab 定向能力落地（服务 v0.4 复核）。①事故预演：按旧 SOP 只做 browse（2026-08-29，脚本自动记录）
+- [归档] DROP S-20260828-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-03 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-15 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-14 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-13 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-12 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-10 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-11 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-09 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-08 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-03 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260827-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）

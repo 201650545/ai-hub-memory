@@ -7,15 +7,14 @@
 - 无。
 
 ## 已完成（最近）
-- **[S-20260828-01]** 记忆架构 Phase M2 扩展：memory-system 建 MEMORY.md + ROUTER.md（2026-08-28）。①新建 projects/memory-system/MEMORY.md 稳定知识层（四节：架构总览 v2.1/分层记忆模型/生命周期与归档规则/读取协议与隔离），把 CHANGELOG/DECISIONS/STATE 中反复验证的架构级结论提炼入 MEMORY（v2.1 三层组件、memory.py 5 命令、R1'~R16 宪法、pre-commit hook、STATE/CHANGELOG/DECISIONS 硬限额、Quarantined Ingress、凭证纪律）。②新建 projects/memory-system/ROUTER.md 冷记忆路由索引骨架（索引表暂空——STATE 7 条均处活跃期；已 DROP 的归档条目细节保留于 CHANGELOG 流水，待批量后再补索引行）。③tier-plan 复核：keep-hot 3 (100.0%)，全部合理。④按方案 M2 剩余：nitian-theme 逐项目扩展（独立 commit）；courseware / teaching STATE 无 S- 条目暂缓。（凭证只写是否存在，无值）（2026-08-28）
-- **[S-20260821-01]** pre-commit hook 已安装（check_memory.py 链接为 .git/hooks/pre-commit），验证 v2.1 全部组件已落地（2026-08-21）
-- **[S-20260814-19] 记忆系统 v2.1 升级（已落地）**：Quarantined Ingress + Project-scoped Consolidation——inbox/ + memory.py 5 新命令 + R1'~R16 宪法 + lazy daily consolidation；全部 6 项优先级已完成（S-20260814-21 确认）。（2026-08-21）
-- **[S-20260815-01]** 读记忆响应协议 GPT 复核结论（2026-08-15，Thinking·Extended 实读）
-- **[S-20260814-21]** v2.1 已落地：MEMORY.json v2.1 + memory.py 5 新命令 + inbox/ + RULES 16 条宪法 + hook inbox 守卫；验收测试通过（2026-08-14）
-- **[S-20260814-20] 隔离记忆 v2.1 定稿（GPT 3 轮闭环）**（2026-08-14）
-- **[S-20260814-18] 记忆系统 v2 落地**（2026-08-14）
-- **[S-20260814-16] 记忆线路由定稿（三方交叉）**（2026-08-14）
-- **[S-20260814-15] 多项目记忆隔离问诊**（2026-08-14）
+- **[S-20260828-01]**  记忆架构 Phase M2 扩展：memory-system 建 MEMORY.md + ROUTER.md。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260821-01]**  pre-commit hook 已安装（check_memory.py 链接为 .git/hooks/pre-commit），验证 v2.1 全部组件已落地。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260814-19]** 记忆系统 v2.1 升级（已落地）**：Quarantined Ingress + Project-scoped Consolidation——inbox/ + memory.py。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260815-01]**  读记忆响应协议 GPT 复核结论。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260814-21]**  v2.1 已落地：MEMORY.json v2.1 + memory.py 5 新命令 + inbox/ + RULES 16 条宪法 + hook inbox 守卫；验收测试通。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260814-20]** 隔离记忆 v2.1 定稿（GPT 3 轮闭环）**。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260814-18]** 记忆系统 v2 落地**。详情见 git 历史 + archive（SID 可溯）。
+- **[S-20260814-16]** 记忆线路由定稿（三方交叉）**。详情见 git 历史 + archive（SID 可溯）。
 
 ## 卡点
 - 无。

@@ -83,3 +83,4 @@
 - DROP S-20260815-01 — STATE「已完成(最近)」超过 8 条上限，旧项下沉，全文见 git 历史。（2026-08-25，pre-commit 拦截修复）
 - DROP S-20260814-02 — STATE「已完成(最近)」超过 8 条上限，旧项下沉，全文见 git 历史。（2026-08-25，pre-commit 拦截修复）
 - DROP S-20260814-01 — STATE「已完成(最近)」超过 8 条上限，旧项下沉，全文见 git 历史。（2026-08-25，pre-commit 拦截修复）
+- [归档] DROP S-20260819-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/english-teaching/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）

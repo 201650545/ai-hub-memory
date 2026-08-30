@@ -33,3 +33,21 @@
 - D-20260827-01 用户 2026-08-27 拍板逐条：①卷轴不合规配图必须修掉，官方实在找不到就用已有人物形象生成图片，优先用火山方舟即（2026-08-27，脚本自动记录）
 - D-20260827-02 Seedance 视频模型选型结论（2026-08-27 实测）：①Doubao-Seedance-1.5-pro(25（2026-08-27，脚本自动记录）
 - S-20260827-04 其他 Agent 会用到的事实（2026-08-27）：项目根=D:\游戏\逆天主题（assets/animations（2026-08-27，脚本自动记录）
+- [归档] DROP S-20260826-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-03 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260826-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-08 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-03 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260825-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260816-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260816-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260815-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
