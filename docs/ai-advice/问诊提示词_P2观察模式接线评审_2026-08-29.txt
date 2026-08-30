@@ -1,0 +1,344 @@
+P2-OBSERVE-WIRE-2026 价格闸门 P2「观察模式接线」实施设计评审。请全文实读后再裁定；回复首行与末行都原样输出令牌 P2-OBSERVE-WIRE-2026，并按文末输出格式作答。本文所有材料已整份内嵌（见 C 节设计稿全文），你无需也不应访问任何外网链接。
+
+== 背景与角色 ==
+你在 2026-08-29 已完成本方案上位设计稿 v0.5 的评审（会话记录 S-20260829-19 起，裁定归档 gpt56_价格闸门v0.4定稿评审裁定_2026-08-29.txt；期间 GPT 同实例三轮退化，临时用 Claude 兜底过一次，用户已把该例外收回成「转 Claude 需当次同意」）。v0.5 已定稿，P1（数据面）已交付：pricing.py 判定层 + 51 例单测 + model_pricing.json 初版 + 组成员离线核对脚本，**纯增量零接线，网关运行时行为未变，api_gateway.py 内 "pricing" 出现次数实测为 0**。
+
+本轮评审对象是 P2 的**实施接线设计稿**：它要回答「v0.5 的 P2 落到本机现有代码上具体改哪几行、提权怎么操作、观察期产出什么数据」。当前状态是**零代码改动**——本稿通过评审并经用户逐次授权后才动代码。请按「这个方案如果照做会不会出事故」的立场审，重点不是文字质量而是：
+1. F1–F6 六条实证的定性是否成立，处置是否漏了更致命的分支；
+2. 还有没有我们没查到的第三条「不改代码也能让 :3100 断流」的路径；
+3. Q1–Q7 逐条裁定，尤其 Q5/Q6/Q7（这三条是成文后查实代码与线上参数才暴露的）。
+
+== A. 已交付基线（P1 契约，本稿拟不改其语义） ==
+pricing.py（D:\项目\services\search_gateway\，7922 字节的 model_pricing.json 为真源）关键面：
+- 常量：CLASS free/paid/unknown；DOC_VERSION=1；PRICING_STALE_DAYS=30；QUOTA_STALE_DAYS=7；MODES=(off,observe,enforce)；**MODE_DEFAULT=MODE_ENFORCE**；OBSERVE_MAX_DAYS=7；EXIT_PRICING_CONFIG=3106。
+- resolve_mode(now) -> {"mode","observe_until","status","error"}；status ∈ ok | expired | invalid:<标签>。env 缺失按 enforce；observe 必须带合法且 ≤7 天的 PRICING_OBSERVE_UNTIL；remaining<0 记 expired。
+- verdict(channel_id, upstream_model, ...) -> 含 allow/class/reason/source/stale/detail 的 dict；真源缺失或解析失败按 unknown；三级 class 回退；unknown 默认 deny（Q2 拍板 fail-closed）。
+- effective_verdict(...)：off→一律 allow(pricing_off)；status!=ok→一律 deny(pricing_config_invalid)；observe 窗口内把 deny 转 allow 且 reason 前缀 observe_would_deny:；enforce→verdict 原样。
+- validate_startup_config() -> (ok, exit_code, message)：status!=ok 或真源 kind==invalid → (False,3106,...)；kind==missing → (True,None,警告)。**注意：env 未配 → mode 落到 enforce → status==ok → 自检返回通过**。
+- write_pricing_atomic(doc)：tmp + 校验 + os.replace 同卷原子替换，写后回读再校验，失败不替换目标。
+单测：D:\项目\tests\test_search_gateway_pricing.py（51 例）。回归编排 D:\项目\tests\run_all.py 目前只挂了 routing（:59），pricing/resource_config 未纳入，属 P4。
+代码仓 D:\项目（分支 refactor/monorepo-20260812），P1 提交 0f3bbca，已推送。
+
+== B. 本机运行态实测（2026-08-29，全部为直接读数，非推断） ==
+B1. 服务：Windows 服务 API3100Gateway = NSSM 包装 python api_gateway.py，虚拟账户 NT SERVICE\API3100Gateway，Delayed Auto Start，监听 127.0.0.1:3100，healthz 免鉴权，当前 Running / StartType Automatic。
+B2. nssm get API3100Gateway AppExit <code>：Default=Restart、0=Restart、3102=Exit、3103=Exit、3104=Exit、**3106=Restart**。AppRestartDelay=3000。
+B3. AppEnvironmentExtra（读注册表 Parameters 多字符串块，当前**只有三行**）：
+  HTTP_PROXY=http://127.0.0.1:7890
+  HTTPS_PROXY=http://127.0.0.1:7890
+  NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+  无任何 PRICING_* 变量。NSSM 该参数为**整块覆盖语义**，不是追加。
+B4. 注册脚本 C:\Users\郭永涛\.tools\register_gateway_service.ps1：:44 AppExit Default Restart、:45 3102 Exit、:46 3103 Exit、:47 AppRestartDelay 3000、:53 AppEnvironmentExtra 仅代理三行。**脚本内既无 3104 也无 3106**（线上 3104=Exit 系手动设置，脚本与线上已漂移）。
+B5. api_gateway.py 现状（行号为实测）：:1300 附近注释声明退出码家族 3102/3103/3104；route_completion 真实转发链在 :339-390，:345-352 用 channels.model_providers(model) 摊平候选为 (渠道id, 上游真名)（上游真名=matched_models[0]，:347），准入循环在 :374 先 capabilities.check_candidate、:388 再 _resource_block；build_route_plan 在 :486-543，判定链 :527-540 顺序为 disabled→no_key→unreachable→resource_block→capability_mismatch→blocked→quota（**与 route_completion 的 capability/resource_block 先后相反**）；路由日志 _log_route :233 为内存环形（重启即丢）；响应头家族 X-Routed-Channel / X-Resolved-Model / X-Fallback-Count 在 :1179；/healthz :890、/api/health :895；__main__ 启动序 :1324-1357：readiness 预检循环→3103→wildcard 检查 sys.exit(3104) 在 :1339→打印→channels.warm_start()→_bind_server。
+B6. 告警面：计划任务 Watchdog3100Alert（SYSTEM，5 分钟，允许电池）→ watchdog_3100_alert.ps1：:3100 DOWN/HUNG 写事件 3105 + D:\项目\data\search_gateway\failclosed_alerts.log，30 分钟去抖。事件源 3105 已被占用，故定价配置硬错误用 3106（Q5 拍板）。
+B7. 流量画像：个人网关，单一使用者，QPS 极低（日均 <1k 请求），opencode 客户端指向它，承载真实日常流量。拔电/重启等运维由用户一人承担，无团队值守。
+
+== C. 设计稿全文（v0.2，待评审） ==
+# 方案 · :3100 价格闸门 P2 观察模式接线（实施设计稿 v0.2，待评审）
+
+> 上位文档：`docs/方案_3100网关价格闸门_2026-08-29.md`（设计稿 v0.5，已定稿）
+> 本文只解决一件事：**v0.5 §6 的 P2 落地到本机现有代码上具体改哪几行、提权怎么操作、观察期产出什么数据**。
+> 状态：**未动任何代码**。评审通过并经用户逐次授权后才实施。
+> 日期：2026-08-29
+> v0.2 变更：补 F5（缺省 enforce 导致「先代码后 env」静默全拦）、F6（注册脚本漂移）两条阻断级实证；§5 改为「先 env 后代码」两段式；§7 增 Q5–Q7。
+
+---
+
+## 0. 先摆实证：本轮实查发现的六个前置问题（F1/F5 为阻断级）
+
+写这份稿前把本机现状逐项查实了，有六条与设计稿的文字描述不一致，**必须先解决再谈接线**。其中 F5、F6 是在成文后逐项查实 `pricing.py` 与 NSSM 线上参数时追加的。
+
+### F1（阻断级）NSSM 未映射 3106 → 配置错误会让服务 crash-loop
+
+实测 `nssm get API3100Gateway AppExit <code>`：
+
+| 退出码 | 含义 | 线上实际动作 |
+| --- | --- | --- |
+| Default | 其他 | Restart |
+| 3102 | 端口绑定失败 | Exit ✅ |
+| 3103 | 存储未就绪 | Exit ✅ |
+| 3104 | 配置错误（wildcard 未授权） | Exit ✅ |
+| **3106** | **定价配置非法（P1-4 新增）** | **Restart ❌** |
+
+`api_gateway.py:1300` 的注释和设计稿 §4.3 都写着「NSSM 映射 Exit 不 crash-loop」，但 3106 是 P1 新引入的码，**注册脚本 `register_gateway_service.ps1` 里根本没有这一行**（脚本只设了 3102/3103）。后果很具体：一旦 `PRICING_MODE=observe` 而 `PRICING_OBSERVE_UNTIL` 缺失/超 7 天/已到期，进程以 3106 退出 → NSSM 每 3 秒重启一次 → 反复失败重启，而 `AppStdout` 日志会被刷屏。
+
+**这不是假想**：M2 的设计初衷就是「到期后不得静默继续 observe」，而当前配置下到期 = 服务进入重启风暴，比静默 observe 更糟。
+
+→ **P2 的提权操作必须包含 `nssm set API3100Gateway AppExit 3106 Exit`**，与 env 变更同一次 UAC 完成。
+
+### F2（高危操作）`AppEnvironmentExtra` 是整体替换语义，会静默丢掉代理
+
+线上该参数当前**只有三行**（实测读注册表 `...\API3100Gateway\Parameters`）：
+
+```
+HTTP_PROXY=http://127.0.0.1:7890
+HTTPS_PROXY=http://127.0.0.1:7890
+NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+```
+
+NSSM 的 `AppEnvironmentExtra` 每次 `set` 都是**覆盖整个多字符串块**，不是追加。若只 `set ... PRICING_MODE=observe`，代理三行会消失 → 网关所有上游请求不再走 7890 → **表现为「部分渠道突然全红」**，而闸门本身看起来没问题。这是 P2 最容易踩且最难看出来的坑。
+
+→ 规程：**改前先导出存档 → 改时一次性写全四~五行 → 改后逐项 `get` 读回校验 → 重启后必须发一次真实上游调用确认代理仍在**。回滚脚本用导出的存档。
+
+### F3 准入序实际有两处，且两处顺序不一致，设计稿引用的行号已漂移
+
+设计稿 §1.3 写「`api_gateway.py:482-493`（`build_route_plan`）：`disabled → no_key → unreachable → capability_mismatch → blocked → quota`」。实际现状：
+
+* `build_route_plan` 在 **:486-543**，判定链为 `disabled → no_key → unreachable → **resource_block** → capability_mismatch → blocked → quota`（:527-540）；
+* `route_completion`（真实转发路径）在 **:370-390**，顺序是 **capability → resource_block** —— 与 build_route_plan 恰好相反。
+
+`resource_block` 是 P4.2 资源控制平面后加的，设计稿 v0.5 成文时还没有，所以 §4.2 的目标序 `capability_mismatch → pricing_gate → blocked` 没给它位置。
+
+→ **P2 必须明确 `pricing_gate` 相对 `resource_block` 的先后**，并让两处判定序**完全一致**（否则 /api/route-plan 显示的决策与真实转发不一致，排障时会骗人）。我的建议见 §2.3。
+
+### F4 组（unified）候选在链路里已被摊平，P2 想数「组内命中」需要自己打标
+
+`route_completion:345-349` 用 `channels.model_providers(model)` / `model_to_chain(model)` 把候选摊成 `(渠道id, 上游真名)` 列表，组名展开后与直呼模型名**在循环里长得一模一样**，无法事后区分。而 §6 P2 的硬产出①正是「组内命中数（预期为零）」。
+
+→ 判定时额外带一个布尔 `is_group = payload["model"] in channels.load_unified()`，写进观测日志。上游真名用 `matched_models[0]`（:347），与 §4.2「定价按上游真名登记」口径一致。
+
+### F5（阻断级）缺省模式是 enforce → 「代码先上线、env 后配置」会静默全量拦截
+
+`pricing.py:73`：`MODE_DEFAULT = MODE_ENFORCE`（P1 拍板原话「忘配 env 只会拦多，不会悄悄放」）。而线上服务 env 实测**只有代理三行**，没有任何 `PRICING_*`。因此接线后只要发生**任何一次进程启动**（正常重启、崩溃被 NSSM 拉起、关机再开机自启），只要 `PRICING_MODE` 还没写进去，闸门就以 **enforce** 运行。更糟的是 `validate_startup_config()`（`pricing.py:326-329`）只在 `status != ok` 时报错，而「未配 env → enforce」的 status 恰好是 `ok` —— **启动自检完全不会提示**，表现为部分模型突然 403，且没有任何一条日志说明为什么。
+
+这直接否掉了「先合代码、找个时间再配 env」这种看起来更稳的顺序。
+
+→ **处置：顺序必须是「先 env，后代码」**，与直觉相反。
+1. env 对当前代码是惰性的（P1 零接线），现在写 `PRICING_MODE=observe` 行为零变化 —— 这是唯一安全的先行操作；
+2. env 写全五项并逐项 `get` 读回校验通过后，才部署/加载接线后的代码；
+3. 回滚顺序相反：**先回退代码，再清 env**（否则回滚过程中服务处于「新代码 + 无 env」= enforce）；
+4. 由此引出的语义问题：想「让闸门消失」不能靠删 env，必须显式写 `PRICING_MODE=off`。请在 §7 Q5 裁定。
+
+### F6（高危）注册脚本与线上参数已漂移，重跑一次即同时引爆 F1 与 F5
+
+`C:\Users\郭永涛\.tools\register_gateway_service.ps1` 实测只设：
+
+```
+:44 AppExit Default Restart   :45 AppExit 3102 Exit   :46 AppExit 3103 Exit   :47 AppRestartDelay 3000
+:53 AppEnvironmentExtra HTTP_PROXY=… HTTPS_PROXY=… NO_PROXY=…      # 仅三行
+```
+
+而线上 3104 早已是 Exit（手动设过，脚本里没有）。也就是说：**任何人因任何原因重跑这个注册脚本，会同时①把 3104/3106 的映射退回 Restart（F1 的 crash-loop 复活）②把 `PRICING_MODE`/`PRICING_OBSERVE_UNTIL` 从 env 块里抹掉（F5 的立即 enforce）**。P2 之后这个脚本就成了「一键把网关变成事故现场」的按钮，而它看起来只是原来的注册脚本。
+
+→ 处置：本步**同步修正注册脚本**（补 `AppExit 3104/3106 Exit`；env 行改为写全五行的单一真源；脚本尾部加读回校验），并把该文件的改动列入交付清单。属管理员脚本库，不需提权即可改文件，但改后需与线上逐项比对。
+
+---
+
+## 1. P2 目标 / 非目标
+
+**目标**
+
+1. 把 `pricing_gate` 挂进准入序，运行在 `observe`：**只记不拦**，任何请求的转发结果与今天完全相同。
+2. 跑满一个 ≤7 天窗口，产出 v0.5 §6 P2 要求的两份硬数据（组内命中、组外按名直呼 free 条目）+ 一份「本会被拦」清单。
+3. 补齐 F1/F2/F5/F6 四个运维缺口，使「配置错误」「改环境」「代码与 env 的先后」「重跑注册脚本」四条路径都不产生次生事故。其中 F5 靠 §5 的操作顺序消解、F6 靠修 `register_gateway_service.ps1` 消解，**均不需要额外的代码语义变更**。
+4. 给 sensetime / dashscope 两款 `deepseek-v4-flash` 的 `unknown` 定级一个**不花钱且不猜**的处理路径（§4）。
+
+**非目标（明确不做）**
+
+* 不启用任何 deny —— deny 属 P3，且必须过 P3 四条门槛 (a)(b)(c)(d)。
+* 不实现 M1 的运行时组成员剔除（P3）；P2 只观测、不改候选链。
+* 不改 `unified_models.json`、不改组配置文件的写校验（P3）。
+* 不注册 7 天核对计划任务（N3，另需单独提权授权）。
+* 不动 capability / resource_block / 熔断 / 限流的任何语义。
+
+---
+
+## 2. 代码改动清单（逐处，共 6 处，全在 `api_gateway.py`）
+
+### 2.1 启动序挂 `validate_startup_config()`
+
+位置：`api_gateway.py:1339`（`CONFIG_ERROR_EXIT` 分支）之后、`:1340` 打印监听地址之前。
+
+```
+ok, code, msg = pricing.validate_startup_config()
+if not ok: print("[FAIL-CLOSED] " + msg); sys.exit(code)      # code=3106
+elif msg: print("⚠️  " + msg)                                  # 文件缺失→警告但继续（§4.3 拍板）
+```
+
+理由：放在 wildcard 检查之后、`channels.warm_start()` 之前——带着不可信闸门配置起服务比不起更危险（`pricing.py:322` 注释同义），且此时还没有任何副作用需要回滚。
+
+### 2.2 新增 `_pricing_gate(cid, client_model, upstream_model)` 辅助函数
+
+与 `_resource_block`（:164）同层同风格，返回 `(verdict_dict, is_group)` 或 None。**observe 下恒 allow**，仅当 `resolve_mode()` 非 ok 时按 `effective_verdict` 返回 deny（配置失效 → 显式异常态，不静默）。
+
+### 2.3 两处准入序插入（**顺序必须一致**）
+
+建议序：`disabled → no_key → unreachable → resource_block → capability_mismatch → **pricing_gate** → blocked → quota`
+
+* pricing 放 capability 之后：能力都不符的候选没必要查价（沿用 v0.5 §4.2 理由）；
+* pricing 放 resource_block 之后：资源封禁是**运维显式意志**（控制平面下发），优先于静态属性判定，被资源封掉的渠道不必再产生定价日志；
+* pricing 放 blocked/quota 之前：先静态后动态，reason 归因清晰（v0.5 原文）。
+
+同时把 `route_completion:370-390` 现有的 `capability → resource_block` 调成 `resource_block → capability`，与 build_route_plan 对齐。**注意**：这两者都是本地判定、都不产生上游调用，调序不改变任何请求结果，只统一归因——但这是一处「与价格闸门无关的顺手修正」，**是否允许在本步做，交给评审裁定（Q1）**，不允许就保持现状、仅在两处各插一个 pricing 点。
+
+### 2.4 路由日志增 `pricing_gate` 字段
+
+`log_entry`（:356-365）新增：
+
+```
+"pricing_gate": {"evaluated": n, "mode": "observe",
+                 "would_deny": [{"channel":cid,"model":real,"class":c,"reason":r}]}
+```
+
+enforce 期该字段改名 `denied`，结构不变。内存环形日志（`_log_route` :233）容量沿用现制，不新增落盘压力。
+
+### 2.5 响应头 `X-Pricing-Class`
+
+位置：`api_gateway.py:1179` 的 `X-Routed-Channel` 家族，取最终成功候选的 class。仅对**已放行的 200 响应**加头，observe/enforce 一致。
+
+### 2.6 `/api/health` 增定价覆盖率
+
+位置：:895 分支。新增 `pricing: {mode, observe_until, status, channels:[{id,free,paid,unknown,stale}]}`，数据来自 `pricing.load_pricing()` 现算，不落新文件。**注意 `status` 必须透出**：`pricing-config-invalid` / `pricing-invalid` 要在这里看得见，否则 M2 的「到期不静默」只落在日志里没人看。
+
+### 2.7 不改的东西（划红线）
+
+`channels.py` 一行不改；`unified_models.json`、`routing.json`、组配置全不动；`pricing.py` 除评审要求的补充外不动（P1 已定稿 schema，改语义=再走一轮提权）。
+
+---
+
+## 3. 观察期数据产出（P2 的真正交付物）
+
+### 3.1 落盘
+
+新文件 `D:\项目\data\search_gateway\pricing_observe.jsonl`，**每请求一行**（追加写，非环形、非内存）：
+
+```
+{"ts","client_model","is_group","channel","upstream_model","class","source",
+ "mode","would_deny","reason"}
+```
+
+只记 `evaluated` 的候选，不记响应体。量级评估：本机 QPS 极低（个人网关），日均 <1k 行，7 天 <10MB，可忽略。
+
+**待评审 Q2**：是新开一个 jsonl，还是塞进现有路由日志。我倾向新开——路由日志是内存环形（重启即丢），观察期数据必须跨重启留存。
+
+### 3.2 三份产出（窗口结束由 `pricing_observe_report.py` 生成，只读脚本）
+
+| 产出 | 定义 | 用途 |
+| --- | --- | --- |
+| ① 组内命中数 | `is_group=true 且 would_deny=true` 的条数与涉及成员清单 | **P3 门槛 (b)。预期恒为 0；非 0 即 M1 误伤实证 → 宁可停在 observe 也不 enforce**（v0.5 §7 执行侧保留意见） |
+| ② 组外按名直呼 free 条目 | `is_group=false 且 class=free` 的 distinct `client_model` 数 + 各自调用频次 | **P3 门槛 (c) ≤10 的唯一数据输入**（N2 拍板：拉取器不作为前提，故这条是硬产出不是可选） |
+| ③ 本会被拦全清单 | 全部 `would_deny=true` 按 model 聚合 | 人工核对有无预期外误伤 |
+
+### 3.3 窗口与到期
+
+* `PRICING_OBSERVE_UNTIL` = 启动日 + 7 天（M2 上限，不取更长）。
+* 到期后**不静默续期**：`resolve_mode()` 返回 `expired` → `effective_verdict` 全 deny + `pricing_config_invalid`，`/api/health` 显红。要继续观察必须重新批准一个新窗口（即再走一次提权重启）。
+* **到期是一枚 7 天引信**：`validate_startup_config()` 把 `expired` 也判为硬错误（`pricing.py:328`，`status != ok` 即 3106）。叠加 F1 修好的 `AppExit 3106 Exit`，后果是**窗口一旦到期，之后任何一次重启（含正常关机再开机、崩溃拉起）都会让服务停在 Stopped，:3100 彻底不可用，直到有人手动改配置**，期间唯一提示是 watchdog 事件 3105。它比 crash-loop 干净，但仍是全断。是否把 `expired` 与「配置读不懂」区别对待 → **Q7**。
+* **待评审 Q3**：7 天从「带 observe 重启成功」起算，还是从「首条观测日志写入」起算。倾向前者，语义简单。
+
+---
+
+## 4. 两款 unknown 的定级（sensetime / dashscope 的 `deepseek-v4-flash`）
+
+现状：P1 如实登记为 `unknown`，按 Q2 拍板默认 deny（observe 下不拦）。
+
+**关键判断：不能用「发一次看看扣不扣钱」来定级。** 三条理由：① 若它其实是 paid，探测本身就产生真实账单，代价不可逆；② 上游响应里没有任何字段能告诉你这次是否计费；③ 免费额度与付费单价常常并存，「调用成功」推不出「免费」。
+
+→ 处理路径（**待评审 Q4 确认**）：
+
+1. 查两家渠道官方定价页 / 控制台免费额度说明（人工浏览，不消耗调用）；
+2. 明示免费 → 登记 `class=free` + `source=manual` + `last_reviewed_ok` 当日；
+3. 明示付费 → 登记 `paid`（无需探针）；
+4. **查不到 → 保持 `unknown` 不动**。observe 期看它是否真被调用；无人调用就永远 unknown，enforce 后仍 unknown 则该模型对该渠道默认拒绝——这是 fail-closed 的正确表现，不是缺陷。
+
+我的立场：**不允许为定级发付费探针**，请评审复核这个判断。
+
+---
+
+## 5. 提权操作序列（分两段，一次 UAC 完成第一段）
+
+全部走管理员脚本库 `C:\Users\郭永涛\.tools\`，沿用服务注册先例（提权模式：`Start-Process powershell -Verb RunAs -Wait`，**勿反复刷 UAC**）。
+
+**第一段 · 只动 NSSM，代码保持 P1 现状（env 此段完全惰性 → 零行为风险）**
+
+```
+-1) 先改 register_gateway_service.ps1（F6）：补 AppExit 3104/3106 Exit、env 行写全五行、尾部加读回校验
+     —— 文件本身不需提权，改完先让脚本与线上逐项 diff 一致（除本次要新增的项）
+ 0) 导出并存档当前 AppEnvironmentExtra → .tools\gateway_env_backup_<ts>.txt
+ 1) nssm set API3100Gateway AppExit 3106 Exit                       # 修 F1（3104 已为 Exit，脚本补齐即可）
+ 2) nssm set API3100Gateway AppEnvironmentExtra <代理3行原样> PRICING_MODE=observe PRICING_OBSERVE_UNTIL=<日期>
+                                                                    # 修 F2，整块重写，五行齐全
+ 3) 逐项 nssm get 读回校验：env 必须 5 行齐全、3106 必须 = Exit
+ 4) nssm restart API3100Gateway（此刻仍是 P1 代码，env 无人读）
+ 5) 第一段验收：/healthz 200 → 发一次真实上游调用确认代理未丢（F2 专项，且必须在旧代码下做）
+             → 路由行为与重启前逐条一致（证明「先配 env」确实无害）
+```
+
+**第二段 · 部署接线后的代码（需单独一次授权）**
+
+```
+ 6) 代码合入并 py_compile + 单测通过（评审要求的 Q1/Q5/Q6 结论落实后）
+ 7) 一次提权重启加载新代码 → /api/health 显示 mode=observe + 窗口日期 + status 无 invalid
+ 8) pricing_observe.jsonl 出现首行，且窗口起点=第 7 步启动日（Q3 待定）
+```
+
+**回滚**（顺序与危险点）：
+* 回滚 = **先回退代码，再清 env**。若先清 env 而代码已接线，中间态就是 enforce（F5）。
+* 「关掉闸门」的正确姿势是显式写 `PRICING_MODE=off`，**不是删掉 env 变量**（删了 = 缺省 enforce）。见 Q5。
+* NSSM env 回滚用第 0 步存档 `set` 回原三行 + 重启。F1 的 3106 映射与 F6 的脚本修正属纯加固，回滚时保留。
+
+**风险窗口**：重启期间 :3100 秒级不可用；`Watchdog3100Alert` 5 分钟周期 + 30 分钟去抖，不会误报。
+**不做**：不碰 `AppExit` 其他码、不改 `Application`/`AppDirectory`、不改监听地址（保持 127.0.0.1:3100）、不新建服务。
+
+---
+
+## 6. P2 自身验收标准
+
+1. **行为零变化**：observe 下同一批请求（含 v0.5 提过的 12 个风险模型名）转发结果与 P1 时逐条一致，无一被拦。
+2. **数据完整**：窗口内 `pricing_observe.jsonl` 无缺日，三份产出均可复算。
+3. **F1 专项**：把 `PRICING_OBSERVE_UNTIL` 改成过去日期重启 → 进程以 3106 退出且**服务停在 Stopped 不循环重启**，`/api/health` 不可达但事件日志无重启风暴。
+4. **F2 专项**：改环境后真实上游调用仍成功（代理未丢）。
+5. **F5 专项**：第一段结束时（env 已五行齐全、代码仍为 P1）路由行为与重启前逐条一致 —— 证明「先配 env」确实惰性；单测补一例「`PRICING_MODE` 未设 → `resolve_mode().mode == "enforce"`」把缺省语义钉死，防止将来有人误以为删 env 就是关闸门。
+6. **F6 专项**：修好的 `register_gateway_service.ps1` 干跑一遍（或用 `-WhatIf` 等价的读回比对），确认执行后线上 env 仍五行齐全、`AppExit 3104/3106` 仍为 Exit —— 即注册脚本对 P2 之后的运行态**幂等**。
+7. **测试**：为 §2 的接线补单测（`_pricing_gate` 纯函数化，observe 恒 allow、配置失效恒 deny、`is_group` 打标正确），并证明 `build_route_plan` 与 `route_completion` 两处判定序结果一致。纳入 `run_all.py` 属 P4，本步先建测试文件（现 `tests/run_all.py:59` 只挂了 routing）。
+
+---
+
+## 7. 请评审裁定的问题（Q1–Q7）
+
+| 编号 | 问题 | 我的倾向 |
+| --- | --- | --- |
+| Q1 | 是否允许在本步把 `route_completion` 的 capability/resource_block 顺序调成与 `build_route_plan` 一致（一处与价格闸门无关的顺手修正） | 允许，但不改判定结果、只统一归因；若评审认为应严格最小化，则两处各插 pricing 点、不动既有顺序 |
+| Q2 | 观测数据落新开 jsonl 还是复用路由日志 | 新开 jsonl（路由日志是内存环形，重启即丢，撑不起 7 天窗口） |
+| Q3 | 7 天窗口起算点 | 从「带 observe 重启成功」起算 |
+| Q4 | 是否为 unknown 定级允许发最小付费探针 | **不允许**，只走官方定价页；查不到就永久 unknown 并被默认拒绝 |
+| Q5 | F5：`MODE_DEFAULT=enforce` 使「删 env」＝全量拦截而非关闭。是否在本步把缺省改为 `off`（接线后未配置＝不启用），还是保留「拦多不放过」并在启动自检里把「env 未配」显式打警告＋在 `/api/health` 显红 | 保留 enforce 缺省（这是 P1 已拍板的 fail-closed 取向，改回去等于反悔），但**必须**让「env 未配」在启动日志和 health 里可见，不能像现在这样静默 enforce |
+| Q6 | F6：注册脚本 `register_gateway_service.ps1` 与线上参数漂移，重跑一次即同时抹掉 3106 映射与 PRICING env。本步是否连带修脚本（并把脚本纳入版本管理/仓库），还是仅在文档里标注「勿重跑」 | 连带修，且把该脚本纳入仓库跟踪。「勿重跑」这种口头约束在半年后必然失效 |
+| Q7 | §3.3：`expired` 与 `invalid` 目前同为 3106 硬错误 → 到期后任何重启都让 :3100 全断。是否本步就把二者区分（invalid 拒启动；expired 起服务但全拦 + health 显红 + 告警），还是维持现状并在窗口到期前完成 P3 拍板 | 倾向区分：**进程级 fail-closed 应该只留给「配置不可信」，「窗口到期」是已知的业务状态，让它起服务但全拦 + 显式告警，排障面更小**；不改 `pricing.py` 语义也能做到（启动序里对 `status=="expired"` 走警告分支） |
+
+**注**：Q1–Q4 是设计稿成文时就想到的取舍；Q5–Q7 是随后逐项查实 `pricing.py`、NSSM 线上参数与注册脚本才暴露的，**严重度高于前四问**（三条都能在不改任何代码、只重启或不重启的情况下让 :3100 断流），请优先裁定。
+
+---
+
+## 8. 与 v0.5 的差异登记（供回写主设计稿）
+
+1. §1.3 的行号 `482-493` 已漂移 → 实为 `486-543`，且判定链已含 P4.2 的 `resource_block`。
+2. §4.2 目标序未给 `resource_block` 定位 → 本稿 §2.3 补为 `resource_block → capability → pricing → blocked → quota`。
+3. §4.3 声称「NSSM 映射 Exit 不 crash-loop」对 3106 **当前不成立** → 本稿 F1 补配。
+4. §6 P2 未写「组内命中如何识别」→ 本稿 F4 补 `is_group` 打标。
+5. §4.3 未说明 `MODE_DEFAULT=enforce` → 由此产生的**部署顺序约束（先 env 后代码）**必须写进主稿 §6 P2 步骤（本稿 F5/§5）。
+6. v0.5 通篇未把 NSSM 注册脚本列为交付物 → 本稿 F6 要求把 `register_gateway_service.ps1` 纳入改动清单与仓库跟踪。
+7. §4.3 把 `expired` 与 `invalid` 同码（3106）处理，未预见「到期后任何重启 = 全断」→ 本稿 Q7 提请重新裁定，若通过则回写 §4.3。
+
+== D. 请裁定的问题（Q1–Q7，逐条给结论） ==
+Q1 §2.3：是否允许在本步把 route_completion 的 capability/resource_block 顺序调成与 build_route_plan 一致（一处与价格闸门无关的顺手修正，两者都是本地判定、不产生上游调用、不改任何请求结果，只统一归因）。不允许则两处各插 pricing 点、不动既有顺序。
+Q2 §3.1：观测数据落新开 pricing_observe.jsonl，还是复用现有路由日志（后者是内存环形、重启即丢，撑不起 7 天窗口）。
+Q3 §3.3：7 天窗口起算点 = 「带 observe 重启成功」还是「首条观测日志写入」。
+Q4 §4：是否允许为 sensetime/dashscope 两款 deepseek-v4-flash 的 unknown 定级发一次最小付费探针。我方立场=不允许，只查官方定价页，查不到就永久 unknown、enforce 后默认拒绝。
+Q5 F5：MODE_DEFAULT=enforce 导致「删掉 env」＝全量拦截而非关闭闸门，且「新代码 + 无 env」这一中间态是静默 enforce（启动自检不报）。是把缺省改成 off（未配置＝不启用，但等于反悔 P1 的 fail-closed 拍板），还是保留 enforce 缺省、仅要求「env 未配」在启动日志与 /api/health 显式可见？
+Q6 F6：注册脚本漂移是否本步连带修（补 3104/3106、env 写全五行、尾部读回校验）并纳入仓库跟踪，还是只在文档标注「勿重跑」。
+Q7 §3.3：expired 与 invalid 目前同为 3106 启动硬错误。修好 F1 之后，「窗口到期 + 任何一次重启」= :3100 全断直到人工改配置（watchdog 会告警，但仍是全断）。是否本步就把二者区分（invalid 拒启动；expired 起服务但全拦 + health 显红 + 告警），还是维持现状、要求窗口到期前必须完成 P3 拍板？
+
+== E. 额外请你想到的 ==
+E1. 除 F1–F6 外，还有哪条「不需要改代码、只需一次重启或一次配置动作」就能让 :3100 断流或让闸门在 observe 期意外生效的路径？（例如：NSSM 服务被 sc stop/start 之外的方式重启、AppEnvironmentExtra 与进程环境继承的关系、model_pricing.json 的 mtime 热载与文件权限、多实例并发写、Windows 休眠恢复对时间敏感逻辑的影响等，请自行判断哪些是真的）
+E2. observe 期「只记不拦」是否真的能在你建议的接线点保证零行为变化？有没有 pricing_gate 的异常路径（IO 异常、文件锁、json 解析炸）会把请求 500 掉，而方案没提？
+E3. 观察期数据要支撑 P3 四条门槛 (a)(b)(c)(d)（见上位稿 §6：a 组漂移复核报告无异常、b 观察期无预期外误伤且组内命中为零、c 组外按名直呼 free 条目 ≤10、d 人工复核节奏 ≤7 天且有 last_reviewed_ok 记录）。§3.2 的三份产出够不够？哪一条缺数据输入？
+E4. 7 天窗口对个人网关是否偏长/偏短？窗口长度与 Q7 的「到期即全断」风险如何权衡？
+
+== 输出格式 ==
+首行：P2-OBSERVE-WIRE-2026
+第二部分：F1–F6 逐条 成立/部分成立/不成立 + 一句话理由（不成立请给出反证依据）
+第三部分：Q1–Q7 逐条裁定（接受/有条件接受+条件/驳回+替代方案）
+第四部分：E1–E4 逐条回答
+第五部分：本稿必改清单（编号、每条写明改哪个章节、判定为阻断还是加固）
+第六部分：总裁决——通过 / 有条件通过（列必改项）/ 不通过。裁决标准：照此实施是否可能让 :3100 在 observe 期发生意外拦截、意外断流或意外 enforce。
+末行：P2-OBSERVE-WIRE-2026
