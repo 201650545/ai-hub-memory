@@ -79,6 +79,20 @@
   处置优先级：用 `--width/--height` 降光栅（实测同一页 1280×720 立即成功）→ 需要大图时加 `--timeout <秒>`（或全局环境变量 `OPENCLI_BROWSER_COMMAND_TIMEOUT`）→ 治本是自动化 Chrome 启动加 `--force-device-scale-factor=1` 把光栅减半，但这会影响共享浏览器实例，须先确认无其他 Agent 在用。
   **已排除的错误归因（勿再重复排查）**：与运行账户无关——DSH 宿主虽以 SYSTEM 运行（node 监听 3080），但把 `HOME/USERPROFILE/APPDATA/LOCALAPPDATA/TEMP` 全部指向空目录后，`tab list` 与 `screenshot` 依旧正常，说明会话发现不依赖用户 profile 注册表；`tab list` 报 `active=False` 也不影响截图。
 - **STOP**：截图报 `cdp_timeout` 不要盲目重跑，先降视口或加 `--timeout`；反复失败才考虑页面被原生对话框阻塞（用 `browser dialog` 处理）。
+- **TRAE SOLO CN 控制（2026-08-30，当子 Agent 全自动对话）**：opencli 直连 TRAE SOLO CN（Electron CDP 9235），可全自动对话：
+  ```bash
+  opencli trae-solo status                     # 连接检查
+  opencli trae-solo open-task --project <名>   # 项目列表打开指定任务进聊天（不指定开第一个）
+  opencli trae-solo send "<提示词>" [--timeout 180] [--raw]  # 自动输入→发送→等回复→读回答
+  opencli trae-solo eval "<js>"                # 调试：任意 JS 求值（只读探测用）
+  opencli trae-solo model                      # 读当前模型（只读，勿切换）
+  ```
+  - **模型锁定（D-GLOBAL-20260830-04）**：只用 DeepSeek V4 Flash 正式版（当前打开对话默认），**不切其他模型**。
+  - 选择器：用户消息 `.turn__user-message`；AI 正文 `.turn__agent-message .agent-plan-item`；思考过程 `.core-expandable-section`；输入框 `.chat-input-v2-input-box-editable`；发送按钮 `.chat-input-v2-send-button`。
+  - 输入框是 **Lexical 编辑器**：`box.focus()` → selection 定位段落末尾 → `document.execCommand('insertText', false, text)`（execCommand 需先设 selection，直接调用返回 false）。
+  - send 完成判定：AI 正文连续 ~2.5s 不变 + 输入框 contenteditable 恢复 = 回复完成。
+  - 布局：项目列表页（无输入框）↔ 聊天工作区；侧边栏任务列表与聊天主区可共存（`.task-list-row-wrapper` 常驻侧边栏）。
+  - 删除消息：hover 用户消息 `.user-message__action-buttons` 内 `trae-icon-Delete` → 弹「删除消息」确认框 → 点「删除」。
 
 ## 5. 统一 AI 搜索网关（:3000）
 - 用途：4 大 AI 搜索（元宝/Kimi/秘塔/豆包）并发 + LLM 渠道聚合（DeepSeek 官方/Gemini/OpenRouter）。
