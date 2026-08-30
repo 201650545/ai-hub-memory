@@ -69,3 +69,4 @@
 - S-20260830-06 CC Switch 直连渠道：provider「火山方舟 Coding」=Anthropic 端点 /api/coding + coding 专用 key（与模型服务 key 不同）+ 3 模型，apiFormat=anthropic，已写入 cc-switch.db（重启 CC Switch 生效）（2026-08-30）
 - S-20260830-07 网关统一剥离 reasoning_content（用户拍板）：魔塔 DeepSeek V4 Pro 输出断续根因=thinking 逐 token 流式透传（实测 max_tokens=30 时 content 空/思考占满）；api_gateway.py 新增 _strip_reasoning_json + _SseReasoningStripper（SSE 逐行剥离，跨 chunk 容错），重启后实测 SSE 已无 reasoning_content（2026-08-30）
 - D-20260830-02 拍板：网关统一剥离思考（所有渠道 reasoning_content 不再透传，只透传正文；thinking 期间客户端静默等正文）（2026-08-30）
+- S-20260830-08 修正 S-20260830-05：coding 套餐渠道合并为**单渠道 ark-coding**（用户纠正「一个厂商的 3 个模型就一个渠道，别拆 3 渠道」）——models=[deepseek-v4-flash, glm-5.3-flash, deepseek-v4-pro]，base /api/coding/v3；unified 组 coding-plan={ark-coding: deepseek-v4-flash}，GLM/V4-Pro 按模型名直调；**新增编排组 glm-5.3-flash**={opencode→ark-coding→openrouter(z-ai/glm-5.3-flash)→zenmux}，实测 glm-5.3-flash 在 ark-coding 链路通（2026-08-30）
