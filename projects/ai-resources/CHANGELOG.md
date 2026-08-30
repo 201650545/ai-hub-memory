@@ -61,3 +61,7 @@
 - [归档] DROP S-20260827-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260825-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/ai-resources/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - S-20260830-01 Claude 调度大脑接入（2026-08-30）：①三项同步打通——ai-hub-memory 5 项目 STATE 超限按官方流程归档 archive/projects/<p>/2026/ + ROUTER 登记 + CHANGELOG DROP，pre-commit 恢复通过；sync_all.py 三端同步全绿（ai-resource-hub/feishu-data-hub/ai-hub-memory pull+push ok）。②调度接入规范已建 ai-resource-hub docs/Claude调度大脑_接入规范_2026-08-30.md：资源库地图（飞书9表/本地凭证/网关:3100/调度器:8789）、查库命令（lark-cli base +record-list）、分配规则（免费优先/模型锁定/额度到点停/编排优先）、回写与三端同步。③分配链路验证：:3100 deepseek-free 调用成功（路由到实际渠道返回回复）。④Trae 全自动对话（opencli trae-solo open-task/send）作为桌面执行器接入，模型锁定 DeepSeek V4 Flash 正式版。（2026-08-30）
+- S-20260830-02 Qoder CLI 接入官方 CLI（qoder_cli.py，qoderclicn -p 非交互），取代 opencli DOM adapter（2026-08-30）
+- S-20260830-03 豆包 adapter 修复 ask 提取截断（文本稳定检测，done 后 2 次相同才返回；新版 textEl 无 div[dir]、indicator 在 textEl 外）（2026-08-30）
+- S-20260830-04 B 类程序委派验证通过：Qoder CLI 分析脚本 / Trae 写码并存文件 / 豆包问答（2026-08-30）
+- D-20260830-01 决策：不买付费 AI 订阅（评估 Codex Plus 代充 ~145元/月 vs 中转站 88元/300刀 后放弃），免费渠道+积分+镜像版 GPT-5.6 够用（2026-08-30）
