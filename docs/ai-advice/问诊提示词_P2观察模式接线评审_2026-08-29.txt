@@ -33,23 +33,24 @@ B6. 告警面：计划任务 Watchdog3100Alert（SYSTEM，5 分钟，允许电�
 B7. 流量画像：个人网关，单一使用者，QPS 极低（日均 <1k 请求），opencode 客户端指向它，承载真实日常流量。拔电/重启等运维由用户一人承担，无团队值守。
 
 == C. 设计稿全文（v0.2，待评审） ==
-# 方案 · :3100 价格闸门 P2 观察模式接线（实施设计稿 v0.2，待评审）
+# 方案 · :3100 价格闸门 P2 观察模式接线（实施设计稿 v0.3，待评审）
 
 > 上位文档：`docs/方案_3100网关价格闸门_2026-08-29.md`（设计稿 v0.5，已定稿）
 > 本文只解决一件事：**v0.5 §6 的 P2 落地到本机现有代码上具体改哪几行、提权怎么操作、观察期产出什么数据**。
 > 状态：**未动任何代码**。评审通过并经用户逐次授权后才实施。
 > 日期：2026-08-29
+> v0.3 变更：补「读数方法勘误」（AppExit 实为注册表子键；非提权 `nssm get` 会读空）与 F7（并发线阶段5 今日重启过 :3100，P2 每段 restart 前须领租约并避开 ControlPlaneLoop 发布窗）；SCM 无失败动作这一前提写入 §6 验收。
 > v0.2 变更：补 F5（缺省 enforce 导致「先代码后 env」静默全拦）、F6（注册脚本漂移）两条阻断级实证；§5 改为「先 env 后代码」两段式；§7 增 Q5–Q7。
 
 ---
 
-## 0. 先摆实证：本轮实查发现的六个前置问题（F1/F5 为阻断级）
+## 0. 先摆实证：本轮实查发现的七条前置问题（F1/F5 阻断级）
 
-写这份稿前把本机现状逐项查实了，有六条与设计稿的文字描述不一致，**必须先解决再谈接线**。其中 F5、F6 是在成文后逐项查实 `pricing.py` 与 NSSM 线上参数时追加的。
+写这份稿前把本机现状逐项查实了，有七条与设计稿文字描述不一致或设计稿未覆盖，**必须先解决再谈接线**。其中 F5–F7 是成文后逐项查实 `pricing.py`、NSSM/SCM 线上参数与并发线状态时追加的。
 
 ### F1（阻断级）NSSM 未映射 3106 → 配置错误会让服务 crash-loop
 
-实测 `nssm get API3100Gateway AppExit <code>`：
+实测退出码动作（权威来源＝注册表子键 `Parameters\AppExit`，读数法见文末勘误节）：
 
 | 退出码 | 含义 | 线上实际动作 |
 | --- | --- | --- |
@@ -120,6 +121,19 @@ NSSM 的 `AppEnvironmentExtra` 每次 `set` 都是**覆盖整个多字符串块*
 而线上 3104 早已是 Exit（手动设过，脚本里没有）。也就是说：**任何人因任何原因重跑这个注册脚本，会同时①把 3104/3106 的映射退回 Restart（F1 的 crash-loop 复活）②把 `PRICING_MODE`/`PRICING_OBSERVE_UNTIL` 从 env 块里抹掉（F5 的立即 enforce）**。P2 之后这个脚本就成了「一键把网关变成事故现场」的按钮，而它看起来只是原来的注册脚本。
 
 → 处置：本步**同步修正注册脚本**（补 `AppExit 3104/3106 Exit`；env 行改为写全五行的单一真源；脚本尾部加读回校验），并把该文件的改动列入交付清单。属管理员脚本库，不需提权即可改文件，但改后需与线上逐项比对。
+
+### 读数方法勘误（本轮二次复核时踩到，务必传给下一个 Agent）
+
+1. **`AppExit` 在注册表里是子键不是值**：正确路径 `HKLM\SYSTEM\CurrentControlSet\Services\API3100Gateway\Parameters\AppExit`，其下每个退出码是一个 `REG_SZ`，`(Default)` 是兜底动作。用 `Get-ItemProperty` 读 `Parameters` 的值列表会**看不到 AppExit**，极易误判成「根本没配过」。权威读数法：`reg query "...API3100Gateway" /s`（Git Bash 下需 `MSYS_NO_PATHCONV=1`，输出 UTF-16 需转码）。
+2. **非提权 `nssm get <svc> AppExit <code>` 不可靠**：会往 stderr 打 `LsaOpenPolicy(): Access is denied`，且部分退出码**读回空串**（本轮实测 3103 非提权读为空，而注册表里明确是 `Exit`）。**读空 ≠ 未配置**。要以注册表为准，或提权后再读。
+3. 按上述方法复核，F1 表格确认无误：`Default=Restart、3102=Exit、3103=Exit、3104=Exit、3106 不存在（即落 Default=Restart）`。
+4. **新增前提**：服务键上 `FailureActionsOnNonCrashFailures = 1`，而 `sc qfailure` 显示**未配置任何失败动作**（无 ACTIONS 行、reset=0）。也就是说「3106 → NSSM Exit → 服务真的停在 Stopped」同时依赖两个条件：NSSM 层映射为 Exit **且** SCM 层没有 restart 动作。若将来有人执行 `sc failure ... actions= restart/...`，F1 修好了也照样重启风暴。→ 列入 §6 验收断言项。
+
+### F7（协作约束）另一条线今天动过这个服务
+
+记忆仓 b8e4fd0（18:11）记录了并发 Agent 关账「阶段5 控制平面」：移除 `API3100ControlPlane` 服务、改登录触发计划任务 `ControlPlaneLoop`（实测 State=Running，last 18:00:54）、新增 `WatchdogControlPlane`；注册日志显示 **18:16:46–18:17:01 跑过一次 `restart_clean`**，即 :3100 在本轮复核前刚被重启过。
+
+好消息：18:24 复核 `AppEnvironmentExtra` 仍是代理三行 + 无 `PRICING_*`，F5 的推断基础未变。约束是：**P2 的两段操作各自包含一次 restart，必须先 `memory.py claim` 领租约**，并在 restart 前确认 `ControlPlaneLoop` 不在发布/回滚窗口内（阶段5 的 ACK 链靠轮询 :3100 的 `/api/resource-config/status`，网关重启会让它记一次 ACK 失败退避）。这不是设计缺陷，是时序纪律，写在这里防止两条线互相踩。
 
 ---
 
@@ -285,7 +299,7 @@ enforce 期该字段改名 `denied`，结构不变。内存环形日志（`_log_
 
 1. **行为零变化**：observe 下同一批请求（含 v0.5 提过的 12 个风险模型名）转发结果与 P1 时逐条一致，无一被拦。
 2. **数据完整**：窗口内 `pricing_observe.jsonl` 无缺日，三份产出均可复算。
-3. **F1 专项**：把 `PRICING_OBSERVE_UNTIL` 改成过去日期重启 → 进程以 3106 退出且**服务停在 Stopped 不循环重启**，`/api/health` 不可达但事件日志无重启风暴。
+3. **F1 专项**：把 `PRICING_OBSERVE_UNTIL` 改成过去日期重启 → 进程以 3106 退出且**服务停在 Stopped 不循环重启**，`/api/health` 不可达但事件日志无重启风暴。读数一律用勘误节的 `reg query "...API3100Gateway" /s` 子键法（非提权 `nssm get` 会读空并把人带偏）；同一轮**顺带断言 `sc qfailure` 仍无 ACTIONS** —— 「停在 Stopped」同时依赖 NSSM 映射 Exit 与 SCM 层无 restart 动作两个条件，少一个前提就不成立。
 4. **F2 专项**：改环境后真实上游调用仍成功（代理未丢）。
 5. **F5 专项**：第一段结束时（env 已五行齐全、代码仍为 P1）路由行为与重启前逐条一致 —— 证明「先配 env」确实惰性；单测补一例「`PRICING_MODE` 未设 → `resolve_mode().mode == "enforce"`」把缺省语义钉死，防止将来有人误以为删 env 就是关闸门。
 6. **F6 专项**：修好的 `register_gateway_service.ps1` 干跑一遍（或用 `-WhatIf` 等价的读回比对），确认执行后线上 env 仍五行齐全、`AppExit 3104/3106` 仍为 Exit —— 即注册脚本对 P2 之后的运行态**幂等**。
