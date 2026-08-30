@@ -1,8 +1,283 @@
-[第 1 轮问诊·实例退化存档，非裁定正文]
-会话：gptreview / vip-19.67673.live / c/6a93850a-b720-83ea-b202-4d3cfcb9
-判据：Extended 已确认开启（pillText=Extended）、发送硬判据满足（userMsgs=1，18088 字符，URL 进 /c/）；
-助手消息先输出 4 字符 "P2-" 后正文清空，assistantLens=0 且 stop=false、无思考指示，连续 3 次探测（含 25s 间隔）无变化。
-＝ SOP 故障表所列「实例退化」签名（先例：08-29 价格闸门同实例三轮 19/85/5 字符）。同实例重试无收益，已按 D-GLOBAL-20260828-01 报告用户，未自动兜底换模型。
-以下为原始残片：
+[GPT-5.6 Thinking Extended · 第 1 轮问诊裁定（完整回收）]
+会话：gptreview / vip-19.67673.live / c/6a93850a-b720-83ea-b202-4d3cfcb9c2eb（标题「⑲ 价格闸门评审裁定」）
+问诊包：docs/ai-advice/问诊提示词_P2观察模式接线评审_2026-08-29.txt（内嵌设计稿 v0.2 全文）
+总裁决：不通过 —— 9 项阻断级必改，核心是「P2 只应获得 observation authority，不应获得 enforcement authority」。
+令牌校验：首行与末行均为 P2-OBSERVE-WIRE-2026，正文 10016 字符完整。
+
+[流程教训·勿再犯] 首次提取（18:23）误报「实例退化」，实为 gpt_wait_extract.mjs 判据缺陷：
+Extended 思考期正文先只吐出令牌前缀 4 字符并稳定 10s，脚本按「连续两次 len 相同且 stop=false」即判 DONE，
+取到 4 字符残片；回复实际在其后正常完成。附带二次误判：探针里 location.href.slice(0,60) 把会话 UUID
+截断了一位分组，照它重开标签会跳回根路径，于是错判「会话消失」。均已修（见 SOP 实测补充 8/9 与脚本 --min/--token）。
+
 ---
-P2-
+
+P2-OBSERVE-WIRE-2026
+
+第二部分：F1–F6 逐条裁定
+
+F1：成立。
+3106 当前实测为 Restart，而 validate_startup_config() 确实可能以 3106 退出；配合 3 秒 AppRestartDelay，会形成确定性的 crash-loop。nssm set ... AppExit 3106 Exit 必须在任何可能触发 3106 的代码上线前完成。
+
+F2：成立。
+在你给出的实测前提下，AppEnvironmentExtra 是整块覆盖；只写 PRICING_* 会丢代理。备份→整块写回→逐项读回→旧代码下真实上游 smoke test，这个处置方向正确。另须增加一点：不能只验证注册表/NSSM 读数，还应在新代码启动后通过 /api/health 验证进程实际看到的 pricing mode，因为真正决定行为的是进程环境。
+
+F3：成立，但处置不应按稿中 Q1 倾向执行。
+两条判定实现顺序确实不一致，resource_block 也确实是 v0.5 后出现的新条件。这个差异会导致诊断归因不同。但“调序不改变任何请求结果”只能说明候选最终都可能被跳过，不能说明可观察行为零变化：reason、日志、route-plan 解释、可能的计数都会变化。因此它是已有债务，不适合混进要求“零行为变化”的 P2。
+
+F4：成立，但 is_group = payload["model"] in channels.load_unified() 还不够稳。
+候选摊平后确实丢失“来自 unified 展开还是直接模型”的来源信息，所以必须在摊平前保存 provenance。但应当在每请求一次、沿用实际模型解析所使用的同一份 unified 快照打标，而不是让 _pricing_gate 对每个候选重新 load_unified()；否则额外引入 I/O、异常和同一请求内配置变化导致的误标。
+
+F5：部分成立。
+核心危险完全成立：PRICING_MODE 缺失会得到 enforce + status=ok，因此“新接线代码 + 无显式 env”会静默启用执行态。但文中多处写成“全量拦截”过强：在配置有效时，free 候选仍可放行、也可能 fallback 到 free；只有 status!=ok 时 effective_verdict() 才是所有被 pricing 评估的候选一律 deny。应把表述改成“静默进入 enforce，可能造成 paid/unknown 候选被跳过乃至请求无可用路由”，而不是笼统“全量拦截”。
+
+更重要的是，稿中“先把 observe env 写进去再上代码”仍没有彻底消掉 F5，因为 observe_until 从第一段开始老化。如果两次授权/实施相隔数天，新代码第一次加载时观察窗口已经缩短，甚至已经 expired。这里必须重写部署序列，见 Q5 和必改项。
+
+F6：部分成立。
+“注册脚本会覆盖 AppEnvironmentExtra，从而删掉 pricing env”由现有材料足以成立，因此已经足够把它定为高危。
+但“仅因为脚本里没写 3104/3106，重跑就一定把现有 3104/3106 override 删除并退回 Default=Restart”目前材料不能证明。如果脚本只是对既有 NSSM 服务逐项 set，未设置的 per-exit override 未必自动消失；只有脚本会删除/重建服务或显式 reset 对应值时，这部分才必然成立。
+
+所以 F6 应改写为：env 破坏是已证实风险；3104/3106 override 是否被重置需依据注册脚本完整的安装/重建逻辑再定性。 即便如此，Q6 仍应连带修脚本，因为脚本与期望运行态已经确定漂移。
+
+第三部分：Q1–Q7 逐条裁定
+Q1：驳回；替代方案为 P2 不调 capability/resource_block 的既有相对顺序
+
+P2 应严格最小化。
+
+两处都把 pricing 放在 capability 与 resource_block 两项均通过之后即可：
+
+route_completion 保持现状：capability → resource_block → pricing
+
+build_route_plan 保持现状：resource_block → capability → pricing
+
+这样 pricing 相对二者的语义一致——“只有两个前置条件都通过才做价格观测”——同时不碰现有归因顺序。
+
+现有两路径 capability/resource 的归因差异另开 P4 修正。相应地，§6.7 不能要求“证明两处完整判定序一致”，因为它们目前本来就不一致；本步只证明 pricing 的候选集合与插入条件一致。
+
+Q2：有条件接受新开 pricing_observe.jsonl
+
+必须新开，不能依赖重启即丢的内存环形日志。但当前 §3.1 的格式不够，且同步落盘可能反过来影响请求。
+
+至少满足四个条件：
+
+明确粒度。现在文字说“每请求一行”，schema 却只有一个 channel/upstream_model，而一个请求可评估多个候选。建议用请求记录 + candidates 数组，或者候选逐行但增加 request_id、candidate_index 和请求级 summary。
+
+加 pricing_doc_revision（hash、mtime 或稳定版本号之一），否则观察期中 model_pricing.json 被更新后，无法解释同一模型前后分类变化。
+
+观测日志必须是非权威、异常隔离：写文件失败、磁盘满、权限错误、JSON 序列化异常不能让真实请求 500。
+
+最好采用非阻塞队列/后台 writer；至少不得把不可控磁盘 I/O 放在关键转发链上。还要暴露 writer error/drop counter。
+
+此外，“7 天无缺日”不是可靠完整性标准：某一天可能没有达到 pricing 点的请求。应改成生命周期 marker + 请求/候选计数对账。
+
+Q3：有条件接受“带 observe 成功激活时起算”，驳回“首条日志起算”
+
+起点应是新代码真正以 observe 成功启动、health 验证通过且 observer writer ready 的时刻，而不是第一条业务流量。
+
+但这要求同时修改 §5：第一段不能预先写一个已经开始倒计时的 observe_until。否则第一段与第二段之间的等待时间会吃掉窗口。
+
+更安全的部署顺序是：
+
+第一段：预置 PRICING_MODE=off。
+旧代码对此仍惰性，而且即便新代码文件部署后服务意外重启，也不会因为默认 enforce 而开始拦。
+
+第二段：代码落盘完成后，在真正激活的同一次管理员操作中，写 PRICING_MODE=observe + 从当时算出的 PRICING_OBSERVE_UNTIL，随后重启。
+
+这样 7 天才真正从 activation 开始。
+
+Q4：接受“不允许付费探针”
+
+你的判断正确。调用成功、HTTP 响应、甚至暂时不扣费都不能证明长期 class=free。
+
+只允许使用可靠的官方价格/额度信息进行人工定级；证据不足则维持 unknown。P2 的真实流量只能告诉你“它是否被使用、如果 enforce 会不会受影响”，不能拿使用结果推导价格类别。
+
+Q5：驳回稿中“保留 enforce 缺省 + 只做可见性”这一方案
+
+仅仅让日志和 health 可见，不能防止事故发生；它只让事故更容易解释。
+
+同时我不建议为了 P2 直接反改 pricing.py 的 MODE_DEFAULT=enforce，因为那会改变已经定稿的 P1 契约。
+
+正确的 P2 解法是：P1 库语义保持不变，但 P2 的网关接线必须是 observation-only interlock，不能把 effective_verdict().allow 接到候选 skip 上。
+
+换句话说，本步不应实现真正的 _pricing_gate，而应实现类似 _pricing_observe：
+
+计算 verdict() / would-deny；
+
+记录 class/reason/source；
+
+无论结果如何都不得改变候选是否继续；
+
+PRICING_MODE=enforce 在 P2 也不能突然获得实际 deny 权限；
+
+env 缺失、expired、invalid 时将 observer 标为 degraded/disabled，health 显红并告警，但真实路由保持原行为。
+
+这才真正符合你自己 §1 的非目标：“P2 不启用任何 deny，deny 属 P3”。
+
+同时部署采用前述 off → 部署代码 → observe+新 expiry → restart。这样即使在代码替换和正式激活之间发生意外重启，也不会落入默认 enforce。
+
+Q6：有条件接受，必须修脚本并纳入仓库，但不能把当前 7 天 expiry 硬编码成永久注册脚本内容
+
+“只写勿重跑”驳回。
+
+但是当前 F6 的解决法还有一个新的定时炸弹：如果 register_gateway_service.ps1 永久写死：
+
+PRICING_MODE=observe
+PRICING_OBSERVE_UNTIL=2026-xx-xx
+
+那么一个月以后重跑它，会主动恢复一个早已过期的观察配置。
+
+因此仓库中的 canonical 脚本应：
+
+固化稳定配置：3102/3103/3104/3106 的 AppExit 策略、代理配置生成逻辑；
+
+pricing mode/until 要么由显式参数传入并校验，要么保留现有 pricing env，不允许注册脚本无条件覆盖动态观察窗口；
+
+更推荐把动态 pricing env 操作拆成单独的 set_gateway_pricing_mode.ps1，负责 backup→merge→validate→set→readback；
+
+.tools 与仓库不能形成两份可独立漂移的真源。要明确仓库是 canonical，.tools 只是调用入口或部署副本。
+
+Q7：驳回稿中两个选项；P2 需要第三种处理
+
+当前问题不仅是“expired 后重启会怎样”。
+
+更危险的是：运行中的进程到达 PRICING_OBSERVE_UNTIL 后，下一次请求调用 resolve_mode() 就会得到 expired，随后 effective_verdict() 按 P1 规则全 deny。它不需要重启。
+
+所以稿中“expired 起服务但全拦”并没有解决事故，只是把：
+
+“SCM 层面的 :3100 不监听”
+
+换成：
+
+“HTTP 服务活着，但 pricing 评估到的候选全部被拒绝”。
+
+对个人网关而言，两者本质上都可能是业务断流。
+
+P2 应采用：
+
+expired / invalid → observer degraded，真实候选仍放行，health 红，显式告警，不再把该状态视作有效观察窗口。
+
+这不需要改 pricing.py：P1 仍可保持 fail-closed；只是 P2 接线不调用它的 enforcement 输出控制真实路由。
+
+等 P3 四个门槛通过以后，再单独接入 effective_verdict().allow，那才是 enforce 权限真正上线的时刻。
+
+另外，“health 显红 + 告警”目前也没有闭环：现有 watchdog 只检查 DOWN/HUNG。服务活着而 pricing expired 时，它不会因为 /api/health 中一个红字段自动告警。必须新增 observer degraded 的告警路径，例如扩展现有 watchdog 检查 pricing health，或进程在状态转变时产生可去抖的告警。不能只写一句“+告警”。
+
+第四部分：E1–E4
+E1：还有，至少有五条值得写入设计，其中前三条我认为是阻断级
+
+第一条：直接/手工启动 python api_gateway.py 绕过 NSSM。
+NSSM 的 AppEnvironmentExtra 只保护 NSSM 拉起的那个进程。若以后为了调试执行 python api_gateway.py、IDE 启动、其他脚本启动，进程可能没有那两项 pricing env，于是按照 P1 默认进入 enforce。若此时 3100 空闲，它甚至可能成为真正提供服务的实例。
+这正是为什么 P2 不能让“能否 deny”单纯由 NSSM env 决定。
+
+第二条：第一段预写 observe expiry、第二段延迟实施。
+这是当前稿已经存在但尚未列成 F7 的事故路径。比如第一段今天配置 observe_until=+7d，用户五天后才授权第二段，那么实际观测只剩两天；八天后部署则新代码一启动就是 expired。无需改代码。
+
+第三条：运行中的墙钟跨过截止时间。
+按当前 resolve_mode(now) 语义，只要进程运行到 expiry，下一次 pricing 评估就能进入 expired；不需要 NSSM restart。休眠本身不是 bug，但电脑睡到截止时间以后再恢复就会立即进入这个状态；手工把系统时钟调快也可能提前触发。当前方案把风险错误地集中描述成“到期后的下一次重启”。
+
+第四条：model_pricing.json 被外部手工破坏后重启。
+官方原子 writer 只能保证走 write_pricing_atomic() 的写入，不保护人工编辑、其他脚本覆盖、ACL 变化。若文件变为 kind=invalid，启动自检会 3106。这个是配置文件本身成为 :3100 可用性的硬依赖。P2 若改成纯 observer，建议把这种失败从“网关不启动”降为“observer disabled + alarm”；P3 enforce 再考虑硬失败。
+
+第五条：机器级环境变量/其他启动方式的环境继承。
+仅检查 NSSM AppEnvironmentExtra 不能证明所有启动路径的进程环境。尤其在回滚到三行 proxy 后，新代码若仍存在，实际模式取决于进程能看到什么环境以及库默认值。验收应验证运行进程解析出的 effective mode，不要把注册表内容当最终真相。
+
+至于“多实例并发写 model_pricing”：P1 原子替换防止半文件，但不防止两个合法 writer 的 last-writer-wins；这主要是配置一致性风险，不是目前最优先的 observe 断流路径。
+“休眠恢复”也不是单独 bug；真正危险的是它让 wall-clock 一次跨过 expiry。
+
+E2：当前接法不能保证“只记不拦”，并且确实存在 500/挂起路径
+
+除了前面最关键的 effective_verdict() 问题，还有：
+
+pricing 文件读取中的未覆盖 I/O 异常；
+
+channels.load_unified() 的异常；
+
+JSONL 打开/append/flush 时的权限错误、磁盘满、路径不存在；
+
+JSON 序列化异常；
+
+同步磁盘 I/O 卡顿；
+
+为 X-Pricing-Class 在成功响应阶段再次计算 class 时抛异常，可能把本来成功的转发变成错误；
+
+/api/health 现算 pricing 时抛异常，使管理面本身 500。
+
+因此 P2 必须建立一个强不变量：
+
+任何 pricing observation 代码抛出的普通异常，都只能损失该条 telemetry，绝不能改变 routing candidate、上游调用和已获得的响应。
+
+实现上建议在真实转发链与 observer 之间做明确异常边界，错误只增加 observer_errors/health degraded。
+
+我还建议 P2 先取消 X-Pricing-Class。它不是完成 P2 三份数据所必需，却让 observation 数据计算侵入成功响应构造；而且从严格意义上说，新增响应头本身也已经不是“响应完全零变化”。P3 或确认有消费者需要时再加。
+
+E3：§3.2 三份产出不够支撑 (a)(b)(c)(d)
+
+逐项对应：
+
+(a) 组漂移复核报告无异常：缺失。
+三份 observe report 都不是组配置 drift report。需要把现有离线组成员核对机制在窗口结束重新运行，并保存结果、时间和所依据配置 revision。
+
+(b) 无预期外误伤 + 组内命中为零：部分具备。
+①和③能找到 would-deny，但“预期外”仍需要人工 adjudication。报告中至少要有 reviewed / expected / unexpected 的复核结论，而不只是原始清单。
+
+(c) 组外按名直呼 free ≤10：理论上具备，但当前 schema 不足以可靠计算频次。
+如果一个请求产生多个候选记录，没有 request_id 去重，会把调用频次放大。因此先修数据粒度。
+
+(d) 人工复核节奏 ≤7 天且有 last_reviewed_ok：缺失。
+需要额外生成 pricing review ledger，例如列出所有 relevant entry 的 last_reviewed_ok、age、stale、source，并证明窗口结束时没有超过复核门槛的条目。
+
+所以 P2 硬交付物应从“三份”扩展为至少五类：
+
+① group would-deny；② direct free；③ all would-deny；④ group drift verification；⑤ pricing freshness/manual-review ledger。
+
+此外记录每个 observation event 使用的 pricing/unified revision，否则 (a)/(b) 出问题时无法重放解释。
+
+E4：7 天本身合理，但“7 天”不能替代覆盖率门槛
+
+对日均 <1k 的个人网关，7 个自然日作为默认观察窗口并不长，反而有一个优点：能覆盖完整的工作日/周末周期。
+
+但低 QPS 也意味着“跑满 7 天”未必覆盖所有风险模型，所以不能把“7 天到期”理解成“自动具备 P3 资格”。P3 应同时要求实际覆盖和人工复核条件满足。
+
+关键是：不要通过缩短窗口来解决 Q7。
+如果保持现在“expired = deny/停服”的设计，即使 24 小时窗口也只是把定时事故提前。
+把 expiry 改成“停止作为有效观察窗口、继续原路由、health 红+告警”以后，7 天就只是治理期限而不是断流引信，这时保留 7 天上限是合理的。
+
+如果七天后样本仍不足，可以由用户明确批准一个新的 ≤7 天窗口；不能静默续期，但也不应因为没批准续期就改变真实流量。
+
+第五部分：本稿必改清单
+#	修改章节	必改内容	等级
+1	§1、§2.2、§2.3	把 P2 从真正的 _pricing_gate 改成 observation-only；禁止任何 pricing 结果控制候选 skip。enforce 权限留到 P3	阻断
+2	§2.1、§3.3、Q7	删除“expired 在 P2 全 deny / 3106 停服”的运行策略；expired/invalid 只使 observer degraded，真实路由不变；补显式告警	阻断
+3	§5	第一段改为预置 PRICING_MODE=off；第二段真正激活时再写 observe + 当时计算的 observe_until，消除预埋 expiry 老化	阻断
+4	§5、F5、Q5	明确“P1 MODE_DEFAULT=enforce 保留，但 P2 网关不能因此获得 enforce 权限”；补手工/IDE 启动绕过 NSSM 的防护说明	阻断
+5	§3.1	JSONL 明确请求/候选粒度，增加 request_id、candidate 序号/数组、配置 revision；writer 异常不得影响请求	阻断
+6	§2.4、§3.1、§6	对 observation 代码建立统一异常边界；增加 writer error/drop/health；不要同步未保护地把磁盘 I/O 放在关键路径	阻断
+7	§3.2	增加 (a) group drift report 与 (d) pricing review/last_reviewed_ok ledger；给 (b) 增人工 adjudication	阻断
+8	§2.3、Q1、§6.7	P2 不调 capability/resource_block 原顺序；只保证 pricing 在二者都通过后执行；删除“本步证明完整判定序一致”的验收要求	加固
+9	F6、§5、Q6	修注册脚本并纳入仓库单一真源；禁止硬编码短生命周期 observe_until；动态 pricing env 单独参数化/脚本化	阻断
+10	F6	把“重跑脚本一定删除 3104/3106 override”的表述降为待验证，除非完整脚本证明会重建/reset 服务	加固
+11	§2.6	/api/health 拆清 mode/effective_mode/env_explicit/mode_status/doc_status/observer_status/writer_status，不要把多种 invalid 混成一个 status	加固
+12	§2.5	P2 删除或至少延期 X-Pricing-Class；它不是 P2 数据闭环必需项且扩大成功响应关键路径	加固
+13	§6.2	“jsonl 无缺日”改为 lifecycle marker + 请求/候选计数对账；无业务请求不能误判为数据丢失	加固
+14	§6.3	不建议在真实 :3100 上通过“改过去日期然后重启”做破坏性 F1 验收；优先用 NSSM readback + 隔离测试服务/集成测试	加固
+15	§8	回写主稿：P2 的核心安全边界是“observer 不具备 enforcement authority”，而不只是“配置成 observe”	阻断
+第六部分：总裁决
+
+不通过。
+
+不是因为总体方向错误，而是当前 v0.2 照稿实施仍明确存在三类可以在 observe 期间造成事故的路径：
+
+意外 enforce： 接入 effective_verdict() 后，缺失 env 默认 enforce，P2 实际已经拥有 P3 才应拥有的 deny 权限。
+
+到期即实际拦截： 正常运行跨过 observe_until 后，不需要重启，expired → effective_verdict deny 就可以改变真实路由；Q7 提出的“起服务但全拦”没有解决这一点。
+
+观测代码反向伤害业务： JSONL、unified 加载、pricing I/O、response header 等新增路径目前没有明确的异常隔离/非阻塞保证，完全可能把原本成功的请求变成 500 或卡顿。
+
+另外，当前“第一段就预写 observe_until”的部署顺序还存在窗口在代码上线前已经开始倒计时的问题；而 F6 方案若把临时 expiry 写死进永久注册脚本，又会制造一个未来重跑即恢复过期配置的新炸弹。
+
+因此我建议把 P2 的边界重新钉成一句话：
+
+P2 只获得 observation authority，不获得 enforcement authority。任何 pricing 配置、价格文件、日志系统或观察窗口异常，在 P2 都只能让“观测失效并报警”，不能让真实路由失效。P3 四门槛通过后，再单独接通 effective_verdict().allow → candidate skip。
+
+完成上面标为“阻断”的必改项后，这份方案可以重新进入评审，届时大概率可转为“有条件通过”；但 v0.2 当前版本不应直接实施。
+
+P2-OBSERVE-WIRE-2026
