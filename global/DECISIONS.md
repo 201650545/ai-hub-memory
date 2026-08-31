@@ -2,6 +2,9 @@
 
 > 只追加。这里只放「删除任何一个项目后依然成立」的决策。项目专属决策在各项目的 DECISIONS.md。
 
+## 2026-08-31
+- [D-GLOBAL-20260831-01] **任务派发三级模型 + 统一入口 dispatch.py**（用户 2026-08-31 拍板，强制）：所有任务不必调度者亲做，按三级派发给系统资源——**A 级·免费模型**（纯文本任务：总结/命名/翻译/文本分析，`services/subagent.py` → :3100 免费组 deepseek-free/fast，只读不写文件不开浏览器）；**B 级·程序 Agent**（写码/写文件/批处理，默认 trae-solo 锁 DeepSeek V4 Flash 正式版、备选 qoder CLI，目录感知可读写）；**C 级·浏览器**（问诊/评审/上游疑难/网页操作，opencli：GPT 镜像站 Thinking·Extended / Kimi K3 / 164 site adapters）。**统一入口 `D:\项目\services\dispatch.py`**：`dispatch.py "任务"` 自动选执行位，`--tier A|B|C` 指定级，`--via trae|qoder` 选 B 级执行位，`--file/--sys/--cwd/--timeout` 透传，`--list` 看矩阵。**付费边界**：默认全免费，绝不直呼付费模型；`--paid` 仅用户显式指定才允许 deepseek-paid/glm-5.3-flash。实测：A 级两次真实调用通过（含附文件+sys），TRAE 链路 status Connected + history 有可用任务。同步修订：global/TOOLS.md 新增派发章节。
+
 ## 2026-08-30
 - [D-GLOBAL-20260830-04] **TRAE SOLO 全自动控制 + 模型锁定**（用户 2026-08-30 拍板，强制）：opencli 已扩展 trae-solo adapter 写命令，可把 TRAE SOLO CN 当子 Agent 全自动对话——`opencli trae-solo open-task --project <名>` 从项目列表打开任务进聊天；`opencli trae-solo send "<提示词>"` 自动注入输入框→点发送→轮询等回复→读 AI 回答返回（提取器：用户 `.turn__user-message`，AI 正文 `.turn__agent-message .agent-plan-item`，思考 `.core-expandable-section`）。**用 Trae 时模型只用 DeepSeek V4 Flash 正式版**（即当前打开对话的默认模型），不得切其他模型。输入框是 Lexical 编辑器（selection+execCommand insertText 注入）。布局：项目列表（无输入框）↔ 聊天工作区，侧边栏任务列表可常驻共存。
 - [D-GLOBAL-20260830-03] **任务完结原则（执行顺序）**（用户 2026-08-30 拍板，强制）：执行任务过程中按顺序推进；**正在做的任务一定要「完结」（有明确结果/验收/状态收敛）再进入下一个**，不留半成品成为历史问题。多 Agent 交叉修改导致混乱的教训：已开始的工作必须收口，先读状态、做完写汇报，再开下一项。同步修订：global/RULES.md。

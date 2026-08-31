@@ -7,6 +7,7 @@
 ## 0. 任务速查
 | 我要做什么 | 首选工具 | Preflight | 章节 |
 |-----------|---------|-----------|------|
+| 派发子任务（统一入口） | python services/dispatch.py | 看 --list 选级 | §4.5 |
 | GitHub 仓库/PR/Issue | gh | gh auth status | §2 |
 | 飞书表/文档/Bot | lark-cli | 认证状态检查 | §3 |
 | 操作已登录网页/AI 引擎 | opencli | opencli doctor | §4 |
@@ -93,6 +94,23 @@
   - send 完成判定：AI 正文连续 ~2.5s 不变 + 输入框 contenteditable 恢复 = 回复完成。
   - 布局：项目列表页（无输入框）↔ 聊天工作区；侧边栏任务列表与聊天主区可共存（`.task-list-row-wrapper` 常驻侧边栏）。
   - 删除消息：hover 用户消息 `.user-message__action-buttons` 内 `trae-icon-Delete` → 弹「删除消息」确认框 → 点「删除」。
+
+## 4.5 统一派发入口（dispatch.py，D-GLOBAL-20260831-01）
+- 用途：调度者把子任务派给系统资源，不亲做。三级派发，默认全免费。
+- Preflight：`python dispatch.py --list` 看矩阵；确认目标执行位在线（A: `curl :3100/v1/models`；B: `opencli trae-solo status` / qoder CLI 存在；C: `opencli doctor`）。
+- 最少命令：
+  ```bash
+  python services/dispatch.py "任务描述"                      # 自动选级（默认 A）
+  python services/dispatch.py "任务描述" --tier B             # 指定 B 级（默认 trae）
+  python services/dispatch.py "任务描述" --tier B --via qoder --cwd "D:\\项目"
+  python services/dispatch.py "任务描述" --file a.py --sys "..."   # A/B 级附上下文
+  python services/dispatch.py --list                          # 查看派发矩阵
+  ```
+- 分级（拍板）：**A 级·免费模型** = 纯文本任务（总结/命名/翻译/文本分析）→ subagent.py → :3100 deepseek-free/fast，只读不写文件不开浏览器；**B 级·程序 Agent** = 写码/写文件/批处理 → trae-solo（锁 DeepSeek V4 Flash 正式版）或 qoder CLI，目录感知可读写；**C 级·浏览器** = 问诊/评审/上游疑难/网页操作 → opencli（GPT 镜像站 / Kimi K3 / site adapters）。
+- 付费边界：**默认全免费，绝不直呼付费模型**；`--paid` 仅用户显式指定才允许 deepseek-paid/glm-5.3-flash。
+- 成功标准：A/B 级命令返回结果文本；C 级按 opencli 具体命令核对。
+- STOP：B 级 trae-solo send 是 GUI 操作会等 AI 回复（默认 180s），勿用短 timeout 误判失败；C 级问诊纪律见 §4（共享标签页/会话纪律）。
+- 坑：trae-solo 的 `--project` 是任务名不是工作目录，dispatch 不传 --cwd 给 trae；qoder CLI 才用 --cwd。
 
 ## 5. 统一 AI 搜索网关（:3000）
 - 用途：4 大 AI 搜索（元宝/Kimi/秘塔/豆包）并发 + LLM 渠道聚合（DeepSeek 官方/Gemini/OpenRouter）。
