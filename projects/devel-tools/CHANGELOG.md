@@ -73,3 +73,4 @@
 - [归档] DROP S-20260815-04 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260815-02 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260815-01 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- [归档] DROP S-20260828-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/devel-tools/2026/2026-08-30.md。（2026-09-01，pre-commit 拦截修复）
