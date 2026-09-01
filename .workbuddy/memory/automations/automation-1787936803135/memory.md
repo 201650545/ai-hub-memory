@@ -8,6 +8,27 @@
 - 备份：`D:\记忆备份\ai-hub-memory_2026-08-29_2101.zip`，152 条目 / 1.27 MB，含 .git 44 条目（HEAD 存在），`zipfile.testzip()` 无坏文件
 - 清理：0 份过期（>30 天），现存 2 份（8-28、8-29）
 
+## 2026-08-30 21:01（第 2 次执行 / 部分成功：备份 OK，push 失败）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12）
+- Git：提交成功 `c78b3f0`（仅 automation memory.md 1 文件）；**push 连续失败 6 次（脚本 3 次 + 人工 3 次），rc=128**
+- 备份：`D:\记忆备份\ai-hub-memory_2026-08-30_2102.zip`，161 条目 / 1.27 MB，**已严格校验**：`testzip()` 无坏文件、含 .git 42 条目（HEAD/config/index/packed-refs/refs 齐全）、解包后 `git log` 正常、`git fsck` rc=0（仅 1 个无害 dangling tree）、工作区 status 干净
+- 清理：0 份过期，现存 3 份（8-28、8-29、8-30）
+- 状态：本地 ahead 1 / behind 0；**`origin/master`(df6ef69) 是 HEAD 祖先** → 网络恢复后直接 `git push` 即可快进，**无需 rebase，更禁止 force push**
+
+### 根因（本次新发现，重要）
+
+不是 Git 冲突，是**网络/代理故障**：
+
+1. 本机 git 配置了代理 `http://127.0.0.1:7890`（global + local 均有）。
+2. 代理进程在跑（PID 29304，端口 LISTENING，大量 ESTABLISHED），**但其 GitHub 出口当前不可用**：
+   - 经代理访问 **百度 → http 200（正常）**；经代理访问 **GitHub → schannel SSL/TLS 握手失败（rc=35）**
+   - 不经代理直连 GitHub → 连接超时（国内直连被墙，属正常现象）
+3. `gh api user` 同样失败（`dial tcp 20.205.243.168:443` 超时）→ 确认是 GitHub 出口问题，非 git 配置问题。
+4. **脚本诊断误导（建议后续修）**：日志里的「ff-only 失败，尝试 rebase」其实是 **`git fetch` 联网失败**（已单独验证 `git fetch origin` rc=128），并非本地分叉。随后 3 次 rebase 是空操作。建议把 pull 拆成 fetch / merge 两步分别判错，网络类失败应直接中止重试而不是误报为分叉。
+
+**修复动作（需用户手动）**：重启 / 切换代理软件（Clash 类）节点，或改用可用网络后，在 `D:\ai-hub-memory` 执行 `git push origin master` 补推即可。
+
 ## 注意事项（下次执行沿用）
 
 1. 本仓库 `.workbuddy/` **未被 .gitignore 忽略**（已用 `git check-ignore` 验证）。本 memory 文件的写入会使工作区出现未跟踪文件，由下一次备份运行自动 commit+push。若用户不希望其入库，需显式将 `.workbuddy/` 加入 .gitignore —— 未获授权前不自行修改。
