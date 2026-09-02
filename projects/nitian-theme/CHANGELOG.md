@@ -51,3 +51,9 @@
 - [归档] DROP S-20260815-07 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260815-06 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
 - [归档] DROP S-20260815-05 — STATE「已完成(最近)」超限旧项下沉，全文见 archive/projects/nitian-theme/2026/2026-08-30.md。（2026-08-30，pre-commit 拦截修复）
+- S-20260901-01 任务A 大/小境界破境分化收尾验收通过（代码为上会话完成，本会话逐行核对+浏览器实测）：小境界不播视频无粒子、2800m（2026-09-01，脚本自动记录）
+- S-20260901-02 任务B 双风格切换（2D 动漫/真人写实）收尾验收通过：loadOpts 默认 style:2d（L168）、面板「破境（2026-09-01，脚本自动记录）
+- S-20260901-03 任务C 本尊/分身收尾验收通过：FS_CHARS 02~05 分身立绘映射（L87-92）、立牌「分身」按钮 .cfs（（2026-09-01，脚本自动记录）
+- [归档] DROP S-20260826-10 — STATE「已完成(最近)」超限旧项下沉，条目见 archive/projects/nitian-theme/2026/2026-09-01.md。（2026-09-01，pre-commit 拦截修复）
+- [归档] DROP S-20260826-09 — STATE「已完成(最近)」超限旧项下沉，条目见 archive/projects/nitian-theme/2026/2026-09-01.md。（2026-09-01，pre-commit 拦截修复）
+- [归档] DROP S-20260826-08 — STATE「已完成(最近)」超限旧项下沉，条目见 archive/projects/nitian-theme/2026/2026-09-01.md。（2026-09-01，pre-commit 拦截修复）
