@@ -1,0 +1,42 @@
+{
+  "routing": {
+    "fast": {
+      "order": [
+        "xiaohongshu",
+        "groq",
+        "agnes",
+        "openrouter",
+        "zenmux",
+        "sensetime"
+      ],
+      "disabled": []
+    },
+    "deepseek-free": {
+      "order": [
+        "gmi",
+        "nvidia",
+        "bai",
+        "sensetime",
+        "openrouter",
+        "modelscope",
+        "siliconflow",
+        "opencode"
+      ],
+      "disabled": ["ark"]
+    },
+    "glm-5.3-flash": {
+      "order": [
+        "opencode",
+        "ark-coding"
+      ],
+      "disabled": []
+    },
+    "deepseek-paid": {
+      "order": [
+        "opencode",
+        "ark-coding"
+      ],
+      "disabled": []
+    }
+  }
+}

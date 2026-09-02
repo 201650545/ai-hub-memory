@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "_doc": "per-model 价格闸门唯一真源（设计稿 v0.5 §4.1）。class 语义=合规使用下是否产生账单；配额/限免型标 billing_model=quota+account_bound=true 走 7 天复核窗口，其余走 30 天。所有 free 条目须 ≤7 天人工复核并更新 last_reviewed_ok/verified_at。未列出的渠道/模型一律落 global_default_class。写入必须临时文件+校验+os.replace 原子替换（M4）。",
+  "channels": {
+    "zenmux": {
+      "default_class": "paid",
+      "_note": "S-20260829-05① 逐款核算：166 款仅 5 款价格全 0，其余 161 款收费。渠道级默认 paid=新上架模型天然落拦截侧（白名单放行）。12 个直呼名解析到收费款的风险面由此默认覆盖。",
+      "models": {
+        "dots-studio/dots3-note-prev": {
+          "class": "free",
+          "verified_at": "2026-08-29",
+          "last_reviewed_ok": "2026-08-29",
+          "evidence": "S-20260829-05①/S-20260829-03① pricings 逐款核算 prompt=0 completion=0；S-20260829-02③ 08-29 复测"
+        },
+        "inclusionai/ling-3.0-tiny": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260829-05①/S-20260828-01③ pricings prompt=0 completion=0（无 -free 后缀，命名误导不是收费）"
+        },
+        "z-ai/glm-4.7-flash-free": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260829-05① pricings 逐款核算价格全 0"
+        },
+        "z-ai/glm-4.6v-flash-free": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260829-05① pricings 逐款核算价格全 0"
+        },
+        "sapiens-ai/agnes-2.5-flash": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260829-05① pricings 逐款核算价格全 0"
+        },
+        "anthropic/claude-sonnet-5": {
+          "class": "paid",
+          "verified_at": "2026-08-28",
+          "evidence": "S-20260829-05② 直呼名 claude-sonnet-5 解析到该收费款且 eligible=True"
+        },
+        "openai/gpt-5.6-sol": {
+          "class": "paid",
+          "verified_at": "2026-08-28",
+          "evidence": "S-20260829-05② 直呼名 gpt-5.6-sol 解析到该收费款且 eligible=True"
+        }
+      }
+    },
+    "openrouter": {
+      "default_class": "paid",
+      "_note": "目录含收费款（S-20260829-07②：deepseek-v4-flash 曾解析到 deepseek/deepseek-v4-pro-0813 收费节点）；仅逐款验证为 0 价的 :free 节点放行。",
+      "models": {
+        "dots-studio/dots-3-note-preview:free": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260829-03① 上游 pricing prompt=0 completion=0",
+          "note": "同名非 :free 款收费，键名必须含 :free 后缀"
+        }
+      }
+    },
+    "xiaohongshu": {
+      "default_class": "unknown",
+      "models": {
+        "dots3-note-prev": {
+          "class": "free",
+          "verified_at": "2026-08-29",
+          "last_reviewed_ok": "2026-08-29",
+          "evidence": "S-20260829-03①/S-20260828-01③ 内测 API 无计费字段、无账单概念；S-20260829-02①/③ 08-29 复测 200",
+          "note": "内测端点：上游可随时关停或转正，纳入 ≤7 天复核"
+        }
+      }
+    },
+    "agnes": {
+      "default_class": "paid",
+      "_note": "S-20260828-01②：上游目录 10 款中 3 款 pro 变体在架且用户确认收费，默认 paid。",
+      "models": {
+        "agnes-2.5-flash": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260828-01② 厂商免费口径 + 实测调用不产生账单；上游 /models 不提供价格字段（证据缺口已如实记录）"
+        }
+      }
+    },
+    "sensetime": {
+      "default_class": "unknown",
+      "models": {
+        "sensenova-6.8-flash-lite": {
+          "class": "free",
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "S-20260828-01③ 上游 pricing 实测 prompt=0 completion=0"
+        },
+        "deepseek-v4-flash": {
+          "class": "unknown",
+          "verified_at": "2026-08-29",
+          "note": "deepseek-free 组成员但记忆仓无计费实测证据，登记 unknown（fail-closed）；P2 observe 期必须补实测，否则 enforce 后按 M1 被剔除"
+        }
+      }
+    },
+    "modelscope": {
+      "default_class": "unknown",
+      "models": {
+        "deepseek-ai/DeepSeek-V4-Pro-0813": {
+          "class": "free",
+          "billing_model": "quota",
+          "account_bound": true,
+          "verified_at": "2026-08-29",
+          "last_reviewed_ok": "2026-08-29",
+          "evidence": "Q1 用户拍板：魔搭积分制，积分用完直接不可用、不产生账单（设计稿 §1.2/§7）",
+          "note": "名称含 Pro 但走积分；积分/活动状态随账号翻转，走 7 天窗口"
+        }
+      }
+    },
+    "bai": {
+      "default_class": "unknown",
+      "models": {
+        "deepseek-v4-flash-vision-exp": {
+          "class": "free",
+          "billing_model": "quota",
+          "account_bound": true,
+          "verified_at": "2026-08-26",
+          "last_reviewed_ok": "2026-08-26",
+          "evidence": "渠道收录时登记的限免池清单（2026-08-26）+ S-20260829-14② 带 tools 直测 200 落本模型",
+          "note": "B.AI 限免池会轮换，活动属性非渠道永久属性，走 7 天窗口"
+        },
+        "deepseek-v4-flash": {
+          "class": "free",
+          "billing_model": "quota",
+          "account_bound": true,
+          "verified_at": "2026-08-26",
+          "last_reviewed_ok": "2026-08-26",
+          "evidence": "渠道收录时登记的限免池清单（2026-08-26，channels.json free_models）",
+          "note": "同上：限免池轮换风险"
+        }
+      }
+    },
+    "nvidia": {
+      "default_class": "unknown",
+      "models": {
+        "deepseek-ai/deepseek-v4-flash-0731": {
+          "class": "free",
+          "billing_model": "quota",
+          "account_bound": true,
+          "verified_at": "2026-08-28",
+          "last_reviewed_ok": "2026-08-28",
+          "evidence": "渠道登记：免费档无按 token 计费、免信用卡、40 RPM 限速（2026-08-28 建 key，有效期 12 个月）+ Q1 用户拍板「算 free，反正我没充钱」",
+          "note": "免费是当前账号/免费档状态：key 有到期日、平台可能引入付费档，走 7 天窗口"
+        }
+      }
+    },
+    "opencode": {
+      "default_class": "paid",
+      "_note": "渠道 billing_type=paid，默认拦截；唯一放行条目为显式用户授权。",
+      "models": {
+        "deepseek-v4-flash": {
+          "class": "paid",
+          "verified_at": "2026-08-29",
+          "evidence": "渠道定义 billing_type=paid（channels.py opencode）；S-20260829-14①",
+          "authorized": {
+            "by": "user",
+            "at": "2026-08-29",
+            "note": "OpenCode 收费但用户明确允许作 deepseek-free 收尾（S-20260829-14① 用户确认的声明顺序第三款）",
+            "revoked_at": null
+          }
+        }
+      }
+    }
+  },
+  "global_default_class": "unknown"
+}

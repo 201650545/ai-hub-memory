@@ -1,0 +1,23 @@
+{
+    "updated_at":  "2026-09-02T00:01:01Z",
+    "updated_epoch":  1788307261,
+    "sentinel":  "ok",
+    "gateways":  {
+                     "api3100":  {
+                                     "port":  3100,
+                                     "state":  "ready",
+                                     "http_code":  200,
+                                     "pid":  51872,
+                                     "checked_at":  "2026-09-02T00:01:01Z"
+                                 },
+                     "search3000":  {
+                                        "port":  3000,
+                                        "state":  "ready",
+                                        "http_code":  200,
+                                        "pid":  38704,
+                                        "unreachable_since":  null,
+                                        "unreachable_epoch":  null,
+                                        "checked_at":  "2026-09-02T00:01:01Z"
+                                    }
+                 }
+}

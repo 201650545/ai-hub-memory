@@ -22,7 +22,7 @@ const MIN = parseInt(get('min', '120'), 10);
 // 可选尾令牌：提示词要求首末行原样输出令牌时传本参数，判据从「长度稳定」升级为「令牌已收尾」
 const TOKEN = get('token', '');
 
-const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];const txt=last?(last.innerText||last.textContent||'').trim():'';return JSON.stringify({stop:!!stop,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
+const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];const txt=last?(last.innerText||last.textContent||'').trim():'';const err=!!(last&&last.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
 const EXTRACT = `(()=>{const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];return JSON.stringify({text:(last?(last.innerText||last.textContent||'').trim():'')})})()`;
 
 const run = js => execFileSync(NODE, [CLI, 'browser', SESSION, 'eval', js].concat(TAB ? ['--tab', TAB] : []), { encoding: 'utf8', maxBuffer: 1024 * 1024 * 30 });
@@ -69,10 +69,16 @@ for (let i = 1; i <= MAX; i++) {
   const tokOk = !TOKEN || (s.tail || '').includes(TOKEN);
   console.log(`[${elapsed}s] stop=${s.stop} count=${s.count} len=${s.len} tail="${(s.tail || '').slice(-24)}"`);
 
+  if (s.err && !s.stop) {
+    console.log(`GENERATION_ERROR after ${elapsed}s — assistant 节点内出现错误横幅（如 "Something went wrong"），本次生成已失败`);
+    console.log('ACTION: 点页面上的 Retry 重发同一消息，然后重跑本脚本；这不是实例退化，勿上报退化存档');
+    process.exit(6);
+  }
   if (s.len > 0) {
     emptyStreak = 0;
     if (s.len < MIN) {
-      // 思考期占位/开头残片：绝不判完成
+      // 思考期占位/开头残片：绝不判完成；stop 按钮在场 = 仍在生成，不计入 LOW_REPLY（2026-09-01 事故：Extended 思考期 len=8 被误判退化）
+      if (s.stop) { stable = 0; lastLen = s.len; continue; }
       lowStreak++;
       stable = 0;
       lastLen = s.len;

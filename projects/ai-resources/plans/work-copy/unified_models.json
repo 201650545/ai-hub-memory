@@ -1,0 +1,41 @@
+{
+  "fast": {
+    "members": {
+      "xiaohongshu": "dots3-note-prev",
+      "groq": "qwen/qwen3.8-27b",
+      "agnes": "agnes-2.5-flash",
+      "openrouter": "dots-studio/dots-3-note-preview:free",
+      "zenmux": "dots-studio/dots3-note-prev",
+      "sensetime": "sensenova-6.8-flash-lite"
+    },
+    "display": "Fast 快速补充（Dots3→Groq 双保险，商汤末位观察）",
+    "tier": "fast"
+  },
+  "deepseek-free": {
+    "members": {
+      "gmi": "MiniMaxAI/MiniMax-M3",
+      "modelscope": "deepseek-ai/DeepSeek-V4-Pro-0813",
+      "bai": "deepseek-v4-flash-vision-exp",
+      "sensetime": "deepseek-v4-flash",
+      "nvidia": "deepseek-ai/deepseek-v4-flash-0731",
+      "opencode": "deepseek-v4-flash",
+      "siliconflow": "deepseek-ai/DeepSeek-V3.2",
+      "openrouter": "minimax/minimax-m3:free"
+    },
+    "display": "DeepSeek 免费链（MiniMax→nvidia→B.AI→商汤→openrouter→魔塔→硅基→OpenCode 付费垫底）"
+  },
+  "glm-5.3-flash": {
+    "members": {
+      "opencode": "glm-5.3-flash",
+      "ark-coding": "glm-5.3-flash"
+    },
+    "display": "GLM 5.3 Flash 编排（OpenCode→火山方舟 Coding）"
+  },
+  "deepseek-paid": {
+    "members": {
+      "ark-coding": "deepseek-v4-flash",
+      "opencode": "deepseek-v4-flash"
+    },
+    "display": "DeepSeek 付费链（火山方舟 Coding 套餐→OpenCode Go 兜底）"
+  }
+}

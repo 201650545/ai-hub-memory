@@ -1,0 +1,145 @@
+{
+  "opencode": {
+    "selected": [
+      "deepseek-v4-flash",
+      "glm-5.3-flash"
+    ]
+  },
+  "sensetime": {
+    "selected": [
+      "deepseek-v4-flash",
+      "glm-5.2",
+      "sensenova-u1.5-lite"
+    ]
+  },
+  "modelscope": {
+    "selected": [
+      "Qwen/Qwen3.8-Flash-Next",
+      "ZhipuAI/GLM-5.2",
+      "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "deepseek-ai/DeepSeek-V4-Pro-0813"
+    ]
+  },
+  "agnes": {
+    "selected": [
+      "agnes-image-2.0-flash",
+      "agnes-image-2.1-flash",
+      "agnes-video-2.5",
+      "agnes-video-2.5-flash",
+      "agnes-video-v2.0"
+    ]
+  },
+  "xiaohongshu": {
+    "selected": [
+      "dots3-note-prev"
+    ]
+  },
+  "openrouter": {
+    "selected": [
+      "cohere/north-mini-code:free",
+      "dots-studio/dots-3-note-preview:free",
+      "google/gemma-4-31b-it:free",
+      "inclusionai/ling-3.0-flash-fin:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3.5-lightning:free",
+      "poolside/laguna-s-2.1:free",
+      "poolside/laguna-xs-2.1:free",
+      "thinkingmachines/inkling-small:free",
+      "thinkingmachines/inkling:free",
+      "openrouter/free"
+    ]
+  },
+  "zscc": {
+    "selected": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "gpt-5.6-sol"
+    ]
+  },
+  "zenmux": {
+    "selected": [
+      "dots-studio/dots3-note-prev",
+      "z-ai/glm-4.7-flash-free"
+    ]
+  },
+  "ark": {
+    "selected": [
+      "deepseek-v4-flash-ga-260731",
+      "deepseek-v4-pro-ga-260813",
+      "doubao-seed-2-0-lite-260428",
+      "doubao-seed-2-1-turbo-260628",
+      "doubao-seed3d-2-0-260328",
+      "doubao-seedream-4-0-250828",
+      "doubao-seedream-4-5-251128",
+      "doubao-seedream-5-0-260128",
+      "glm-5-2-260617",
+      "hitem3d-2-0-251223",
+      "hyper3d-gen2-260112"
+    ]
+  },
+  "ark-coding": {
+    "selected": [
+      "deepseek-v4-flash-ga-260731",
+      "deepseek-v4-pro-ga-260813",
+      "glm-5.3-flash"
+    ]
+  },
+  "groq": {
+    "selected": [
+      "qwen/qwen3.8-27b"
+    ]
+  },
+  "empero": {
+    "selected": [
+      "glm-5.3-flash",
+      "qwen3.8-flash-next"
+    ]
+  },
+  "longcat": {
+    "selected": [
+      "LongCat-2.0"
+    ]
+  },
+  "bai": {
+    "selected": [
+      "deepseek-v4-flash",
+      "deepseek-v4-flash-vision-exp"
+    ]
+  },
+  "nvidia": {
+    "selected": [
+      "deepseek-ai/deepseek-v4-flash-0731"
+    ]
+  },
+  "gmi": {
+    "selected": [
+      "MiniMaxAI/MiniMax-M2.7",
+      "MiniMaxAI/MiniMax-M3"
+    ]
+  },
+  "cloudflare": {
+    "selected": [
+      "@cf/ibm-granite/granite-4.0-h-micro",
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "@cf/zai-org/glm-4.7-flash"
+    ]
+  },
+  "mistral": {
+    "selected": [
+      "codestral-2508",
+      "codestral-latest",
+      "mistral-large-2512",
+      "mistral-large-latest",
+      "mistral-medium-3",
+      "mistral-medium-3-5",
+      "mistral-medium-3.5"
+    ]
+  },
+  "siliconflow": {
+    "selected": [
+      "deepseek-ai/DeepSeek-V3.2",
+      "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "deepseek-ai/DeepSeek-R1"
+    ]
+  }
+}
