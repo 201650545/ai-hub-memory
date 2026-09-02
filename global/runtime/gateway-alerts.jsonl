@@ -1,4 +1,0 @@
-{"ts":"2026-09-01T16:26:41Z","type":"gateway_state","gateway":"api3100","from":"ready","to":"failed"}
-{"ts":"2026-09-01T16:30:02Z","type":"gateway_state","gateway":"api3100","from":"failed","to":"ready"}
-{"ts":"2026-09-01T19:55:23Z","type":"gateway_state","gateway":"api3100","from":"ready","to":"failed"}
-{"ts":"2026-09-01T19:56:02Z","type":"gateway_state","gateway":"api3100","from":"failed","to":"ready"}

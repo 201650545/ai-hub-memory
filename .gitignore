@@ -14,3 +14,7 @@ __pycache__/
 
 # 记忆项目切换 sidecar（本地状态，不入库）
 .memory-active-project
+
+# 运行态：机器瞬态，不入共享真源（MEMREORG P0-1，GPT R3 终版 2026-09-01；
+# 含 gateway-health/alerts 与 runtime/locks/ 资源锁，进程自建目录）
+global/runtime/
