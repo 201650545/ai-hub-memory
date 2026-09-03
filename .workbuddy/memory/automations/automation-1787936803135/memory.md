@@ -155,3 +155,13 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 - 目录整洁：6 份备份（8-28 ~ 9-02）+ backup.log，无 `.old` / 无临时文件残留。
 
 **⚠️ 新坑（重打包必看）**：`os.replace()` 在 Windows 上**不能跨盘**——临时包放在 `tempfile.gettempdir()`（C 盘）而目标在 D 盘会抛 `[WinError 17] 系统无法将文件移到不同的磁盘驱动器`，且此时原包已被改名成 `.zip.old`（虽无数据丢失但目标文件名临时缺失）。**正确做法：临时 zip 必须建在与目标相同的目录下**（`D:\记忆备份\_repack_*.tmp.zip`）。
+
+**⚠️ 第二个坑（解包校验路径）**：zip 内条目是**相对仓库根的路径**（如 `AGENTS.md`、`.git/HEAD`），`extractall()` 后**没有** `ai-hub-memory/` 这一层子目录。若硬编码 `cwd=os.path.join(TMP,'ai-hub-memory')` 会抛 `[WinError 267] 目录名称无效`。**解包根目录就是 TMPX 本身**。
+
+### 最终态（21:10，本轮收敛）
+
+- 追加 `b070b1e` 补推成功（`80cbbb6..b070b1e`，fast-forward），为保持备份与远端严格一致再做了一次原子替换式重打包。
+- **最终交付**：`D:\记忆备份\ai-hub-memory_2026-09-02_2103.zip` = **249 条目 / 1726.99 KB**；testzip 无坏文件、.git 107 条目（HEAD/config/index/packed-refs/refs 齐全）、无重复条目；**解包实测 HEAD=`b070b1e`**、`git status` 干净、`git fsck` rc=0（仅 1 个无害 dangling tree）、含 `.workbuddy/memory/2026-09-02.md`、不含临时包副本。
+- **三方一致**：本地 HEAD == `origin/master` == 远端实际 == `b070b1e`，ahead/behind = 0/0，工作区干净。
+- 备份目录：6 份（8-28 ~ 9-02）+ backup.log，无 `.old` / 无 `_*.tmp` 残留；0 份过期。
+- 经验：重打包会形成「写记忆 → commit → 备份落后 1 提交」的循环，**下一个执行日应先写记忆、后跑脚本**，一次成型，避免本轮这种 3 次打包。
