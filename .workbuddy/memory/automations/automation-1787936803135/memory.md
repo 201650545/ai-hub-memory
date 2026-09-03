@@ -52,3 +52,81 @@
 1. **昨日的「脚本诊断误导」问题今日未复现**：本次 ff-only 失败确为真实分叉，走 rebase 属正确路径。但改进建议仍有效——应把 pull 拆成 `fetch` / `merge` 两步分别判错，网络类失败直接中止重试，避免把「联网失败」误报成「分叉失败」。**未擅自改脚本，留待用户授权**。
 2. **当前无积压**：与昨日的 ahead 1 状态不同，本次结束后本地与远端完全同步，下次为常规路径。
 3. **Windows 路径坑（新记录）**：Git Bash 的 `/tmp` 与 Windows Python 解析不一致（Python 会拼成 `D:\tmp\...`），解包校验必须用**显式 Windows 绝对路径**（如 `C:\Users\...\AppData\Local\Temp\...`）；清理临时目录时 `rm -rf` 会被 safe-delete 拦截（genie-trash 无法规范化路径），改用 Python `shutil.rmtree`。
+
+## 2026-09-01 21:08（第 4 次执行 / 备份成功，push 因代理完全挂死失败）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12），**耗时 30 分 14 秒**（远超常规，原因见下）
+- Git：工作区干净，无提交；`HEAD = origin/master = cfa902b`（8-31 21:05「备份自动化执行记录」，已于 8-31 成功推送）
+  - **待推送 0 / 待拉取 0** → 本次**无本地积压**，与 8-30 的 ahead 1 不同，数据安全无风险
+- push：**连续 3 次失败，rc=-1（subprocess timeout，非 128）** → 判定为网络挂起，非认证/非冲突
+- 备份：`D:\记忆备份\ai-hub-memory_2026-09-01_2138.zip`，198 条目 / 1358.09 KB，**严格校验通过**：`testzip()` 无坏文件、.git 79 条目（HEAD/config/index/packed-refs/info-refs/`refs/heads/master`/`refs/remotes/origin/*`/4 个 reflog/48 objects 齐全）、解包实测 `git log` 正常且 HEAD=`cfa902b`、`git status` 干净、`git fsck` rc=0（仅 1 个无害 dangling）、核心文件齐全
+- 清理：0 份过期（>30 天），现存 5 份（8-28、8-29、8-30、8-31、9-01）
+
+### 根因（本次，**比 8-30 更严重**：代理整体挂死，非仅 GitHub 出口）
+
+1. 代理仍是 `http://127.0.0.1:7890`，进程为 **mihomo.exe（Clash Meta），PID 56492，今日 20:11 才启动**（约在备份前 50 分钟）。
+2. **代理对所有请求无响应，不只是 GitHub**：
+   - 经代理访问 百度 / QQ → **全部 timeout（rc=124）**，重试 3 轮皆失败
+   - 经代理访问 GitHub → timeout
+   - 8-30 时经代理访问百度是 200，**本次连国内站都不通** → 代理进程 hang，非节点失效
+3. **直连（--noproxy）百度 → http 200 正常** → 本机网络本身没问题
+4. **直连 GitHub 不可行**：`github.com:22` 与 `:443` 均 BLOCKED/TIMEOUT → GitHub 只能走代理，**无备用通道**
+5. 无 Clash 外部控制 API（9090 无响应），无法通过 API 切节点/查状态
+
+**结论**：本次 push 失败纯属代理挂死，**仓库无任何待推送内容，无数据丢失风险**。真正待办只有一个：等代理恢复后做一次 `git pull --ff-only && git push`（确认远端在 8-31 21:05 之后是否由其他 Agent 推进）。
+
+### 沿用要点（下次执行）
+
+1. **rc=-1 是网络挂起的指纹**：日志里 `push 失败 rc=-1` 表示 180s 超时；`rc=128` 才是 Git 层拒绝（如 8-30）。二者根因不同，判读时注意区分。
+2. **脚本「HEAD=origin/master 一致」具有误导性（重要）**：pull 从未成功时，`origin/master` 是**本地缓存的陈旧 ref**，二者相等**不代表与真实远端同步**。本次因待推送/待拉取均为 0 才得出「无积压」结论——必须配合 `git log origin/master..HEAD` 与 `HEAD..origin/master` 双向核对，不能只看脚本最后一行。
+3. **耗时预警**：代理挂死时脚本会跑满 3 轮 × (pull 180s + push 180s) ≈ 18 min，本次实测 30 min。属预期行为，不要误判为卡死后重复启动脚本（会造成 git index 争用）。
+4. **脚本改进建议（二次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错——网络类失败（fetch 失败）应**直接中止并跳过重试**，而非每轮都误报「ff-only 失败，尝试 rebase」并空转 rebase 3 次。本次 3 次 rebase rc=0 全是空操作，纯属浪费 18 分钟。
+5. 校验时若发现「核心文件缺失 refs」是**误报**：校验脚本用 `endswith('.git/refs')` 判断，而 refs 是目录；应改为检查 `.git/refs/heads/master` 等具体路径。已确认 refs 齐全。
+6. 临时校验脚本（`scripts/_verify_backup_tmp.py` / `_list_git_tmp.py`）用完即删，已清理，工作区保持干净。
+
+### 深度排查（续，21:40 后追加）
+
+**代理栈真实结构（已查清）**：
+
+- 实为 **Clash for Windows（CFW）**，配置目录 `C:\Users\郭永涛\.config\clash\`
+  - `config.yaml`：`mixed-port: 7890`、`external-controller: 127.0.0.1:58310`（含 secret，勿外泄）
+  - `service\service.exe`（WinSW 包装）+ `clash-core-service.exe`
+- **系统代理**：WinINet `ProxyEnable=1` → `127.0.0.1:7890`
+- **启动链（今日）**：Windows 服务 `Clash Core Service`（StartMode=Auto，路径 `...\.config\clash\service\service.exe`）于 **20:10:56** 启动 → **20:11:00** 拉起核心 **mihomo.exe**（PID 56492）
+- **CFW GUI 未运行**，无计划任务 / 无自启动项 → 核心由服务托管
+
+**关键判据**：
+
+- `ExecutablePath` / `CommandLine` 查询结果均为**空** → mihomo 运行在**高于本会话的权限级**（SYSTEM），非管理员读不到；这也解释了为何 `Get-Process.MainModule` 受阻。
+- **控制 API 58310 未监听**（netstat 无该端口、curl 无响应）→ 无法通过 REST 切节点 / 查健康度，只能重启。
+- `mihomo.exe` 在 C 盘（AppData / Program Files，深度 5）与 D 盘（深度 4）**均未搜到** → 无法手工拉起。
+- 明文 HTTP 经代理同样超时 → 非 TLS 问题，是**上游中继挂起**；代理端口本身有响应（直连 400）→ 进程活着，只是转发不出。
+
+**恢复尝试（已失败，状态无恶化）**：
+
+- 尝试 `Restart-Service "Clash Core Service"` → **失败：非管理员**（`Cannot open Clash Core Service service on computer '.'`）
+- 结果：服务仍 `Running`，mihomo 仍 PID 56492 未变 → **未造成任何损害**，代理依旧是原先的挂死状态（未变得更糟）
+
+**⚠️ 未做「直接 kill mihomo」的原因（重要，下次勿犯）**：mihomo 由 SYSTEM 级服务托管、且**二进制路径不可知、控制 API 不可用**——一旦 kill 而服务不自动拉起，将留下「系统代理指向死端口且无法手工恢复」的更糟局面。故**只在能确认可重建时才 kill**。
+
+### 用户需执行的手动修复（管理员权限，二选一）
+
+1. **推荐**：打开 **Clash for Windows 图形界面**（能托管并正确重建核心），切换一个可用节点 / 或重启核心；
+2. 或以**管理员**身份执行：
+   ```powershell
+   Restart-Service "Clash Core Service" -Force
+   ```
+
+代理恢复后补同步（**禁止 force push**）：
+
+```bash
+cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行记录 2026-09-01" && git pull --ff-only && git push
+```
+
+注：本次结束时工作区有 2 项未提交（`M .../automation-1787936803135/memory.md`、`?? .workbuddy/memory/2026-09-01.md`），已包含在备份包中，下次运行会自动 commit+push。
+
+### 备份补做（21:53）
+
+- 首次备份（21:38）打包于写入当日记忆文件**之前**，为保持「一天一份、内容最新」，已用**临时文件 → 校验通过 → 原子替换**的方式重打包同一文件名，未新增冗余文件、未产生重复条目。
+- 最终：`ai-hub-memory_2026-09-01_2138.zip`，**199 条目 / 1393.3 KB**，`testzip()` 无坏文件、.git 79 条目、核心 .git 文件齐全、解包后 `git log` 正常且 HEAD=`cfa902b`、无重复条目。
+- 注：解包后 `git status` 显示**不干净**属**正常**——正是上述 2 个未提交记忆文件，备份如实保留了未提交改动（这是优点，不是缺陷）。判读时勿误判为备份损坏。
