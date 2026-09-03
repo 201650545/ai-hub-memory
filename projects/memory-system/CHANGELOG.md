@@ -10,6 +10,7 @@
 - Claude（调度大脑）：记忆项目审计修正——v2.8 限时执行位（GLM 5.3 flash 1 亿 token）已于 2026-09-02 到期，project_v28_execution_phase 改「历史阶段」口径，三大待办留待确认是否闭环；同步 Claude 记忆 + D:\记忆 镜像。
 - Claude（调度大脑）：执行 Obsidian 五库→两库（D-20260903-02 落地）——关停 Obsidian，建 `D:\Work` 合并库，移入 通用规范/项目索引/逆天主题/AI平台 四库（各自 .git 完好，git remote 已验：handbook/workspace-index/nitian-theme/ai-platform），`D:\记忆` 独立保留；更新 obsidian.json 注册表为 Work+记忆 两库（备份 obsidian.json.bak-20260903）；重启 Obsidian 自动生成 `D:\Work\.obsidian` 并成功识别。Work 根不做 git 仓（坑B）。旧路径 `D:\通用规范` 等已迁移到 `D:\Work\<子库>\`。
 - Claude（调度大脑）：概念解释器定稿落档——GPT Extended（vip-16，走文档化 wendabao 账号池流程 2026-09-03）实读 5 仓问诊，答 Q1 项目索引索引什么/Q2 逆天主题进不进/Q3 AI平台干什么；**采用 GPT 定稿结构**：解释器=workspace-index 仓内 `concepts/` 小目录（语义真源，非第五子库非单独仓非 handbook），projects.yaml 继续独占路由真源、concepts 独占语义真源。落 concepts/README+TEMPLATE+00/10/20/30 六文件 + 原始问诊回复归档（CONSULT-2026-09-03，commit 4d05ecf→efddb41 已 push）。同时把 workspace-index README 扩为 WHERE(projects.yaml)+WHAT(concepts) 双真源口径。删除自建临时 `D:\Work\解释器\`。
+- Claude（调度大脑）：概念解释器 **v2 重构**（GPT v2 问诊定稿结构落地）——三层骨架「系统导航 + 概念条目 + 项目/模块子目录」：README/00/01/02/03 + common-concepts + `projects/`（nitian-theme/ai-platform/handbook/ai-hub-memory 四项目条目）+ `modules/`（ai-platform-modules/memory-structure）；引入**粒度宪法三问** + **范围闸门**（只写 路径/一句话用途/负责/不负责/真源，不写设计原因/历史/规划/实现）；Q1/Q2/Q3、三真源、三不等号、Memory 分类等结论全部保留。子 Agent 重构 + 人工核实 + 修根 README structure 块，commit `8c74629`（efddb41→8c74629）已 push workspace-index main。旧平面 00/10/20/30 删除。
 
 ## 2026-08-21
 - [归档] DROP S-20260814-19 — 记忆系统 v2.1 升级完成（S-20260814-21 已确认 v2.1 落地），"进行中"→"已完成"。
