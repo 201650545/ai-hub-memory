@@ -96,7 +96,7 @@
 原方案 B（sensetime 常态首位）**否决常态**：能力弱于 agnes/M3，仅作故障态热备。
 C/D/E 维持否决（C 语义风险、D 破 OpenAI 协议、E 本地能力不足）。
 
-待办：P0 两项立项开工（建议下次 v2.9/release 前完成）；P1 两项排期。
+待办：**P0 两项已落地（2026-09-03）**：F 新增 `fault_domains.py`（proxy 域反应式熔断 + `request_deadline_s=30` 封死链；配置 `data/search_gateway/fault_domains.json`）注入 `api_gateway.py:route_completion`；G 新增 `capability_verify.py`（chat/vision/tools 三测 + fail-closed 写回 `model_capabilities.json`），`save_custom_channel` 注册后异步触发。E2E 验证过：转发放通无回归、死渠道注册被 chat:false 隔离、假 tools 渠道被 `check_candidate` 排除。**P1 两项（B′ sensetime 动态升权、Cloudflare Workers AI 直连热备）排期未做**。
 
 ## 评审 3 问均已答复（2026-09-03 收）
 
