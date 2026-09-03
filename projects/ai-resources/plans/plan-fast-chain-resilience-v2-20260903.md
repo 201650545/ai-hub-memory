@@ -1,6 +1,6 @@
 # RFC v2: fast 链抗脆弱性方案（2026-09-03 上线前评审）
 
-> **Status**: proposed（v2 草稿，待 GPT 镜像版评审 + 郭老师拍板）
+> **Status**: finalized（已收 GPT 镜像版评审答复 2026-09-03，见 §GPT 评审裁决；执行方案=A+B′+F+G，F/G=P0）
 > **Author**: 调度大脑（Claude）
 > **Created**: 2026-09-03
 > **Related**: S-20260902-08（v1 siliconflow 兜底被郭老师撤回）、S-20260902-09（fast 链 v2 改造已上线）、T-20260902-08（v1 RFC 文档）
@@ -70,24 +70,39 @@
 - **优点**：永不依赖外网
 - **缺点**：本机显卡 8GB 显存紧张；郭老师 9-2 否决 siliconflow 原因是"快不够"——本地 7B 不可能快
 
-## 推荐的最小可行方案（v2 草稿）
+## GPT 评审裁决（2026-09-03 收答复，7930 字）
 
-**A + B 组合**：
-- 保留 v2 8 渠道顺序
-- **新增** sensetime 首位（如果 7890 挂测出可用，再确认推广）
-- 文档化脆弱场景到 TOOLS.md §4.6
-- 上 cherry studio 真实聊天回归（验证 T-05）
+> **结论**：不建议静态 A+B 收口。应为 **A + B′（sensetime 动态直连热备，非常态首位）+ F（故障域熔断/健康路由）+ G（capability contract test）**，其中 **F 应为 P0**——真正的 SPOF 不是单个模型渠道，而是 **7890 这个共享 egress failure domain**。
+>
+> **完整回复**：`D:\项目\logs\gpt_rfc_reply_20260903.md`；镜像站对话「㊽ 评审 Fast 链方案」。
 
-**否决方案 C/D/E**：
-- C 语义风险 > 收益
-- D 改客户端成本 > 收益
-- E 本地模型能力不够
+| 优先级 | 方案 | 建议 | 理由 |
+|---|---|---|---|
+| P0 | 按故障域熔断（整组跳过），不逐渠道 fallback | 必做 | 7890 挂时应一次判断整组跳过，而非让 7 渠道依次超时 |
+| P0 | capability 自动 contract test + fail-closed | 必做 | capability 误标比普通 5xx 更危险=「假健康」 |
+| P1 | sensetime 动态升权（非常态首位） | 做 | 正常保高质量渠道优先；代理故障时 sensetime 立即变 #1 |
+| P1 | 独立直连 Cloudflare Workers AI 热备 | 推荐 | 多一独立故障域，有比 llama-3.3-70B 更合适的免费额度模型 |
+| P1 | route/channel circuit breaker + deadline budget | 必做 | 消灭 30s+ 串行死亡链 |
+| P2 | 延迟 hedging / selective racing | 有条件做 | 解决尾延迟，不能无脑全量双发 |
 
-## 待 GPT 评审的 3 个问题
+## 定稿执行方案（替代原 A+B 草稿）
 
-1. **A+B 是否合理？** 还有更便宜的 fallback 候选（如 cloudflare llama-3.3-70b、opencode deepseek-v4-flash 付费兜底）？
-2. **capability 误标如何自动化检测？** 渠道加进来时自动跑 3 个标准测试（chat/vision/tools）验证实际能力 vs 声明？
-3. **OR 4 key 池的弱 provider 限流** 是否有更聪明的 key 调度（如基于 health 状态切池）？
+目标收敛为 4 个执行项：
+1. **[P0] F·故障域熔断**：识别 7890 共享故障域，健康探测 -> 整组短路跳过，熔断阈值+短路恢复（消灭 30s+ 串行死亡链）。
+2. **[P0] G·capability contract test**：渠道注册时自动跑 chat/vision/tools 三测验证声明 vs 实际，fail-closed（防「假健康」重演）。
+3. **[P1] B′·sensetime 动态升权**：正常时保现有高质量渠道首位；7890 故障探测触发 sensetime 升 #1，恢复后回落。
+4. **[P1] Cloudflare Workers AI 直连热备**：接入一个不依赖 7890 的免费额度独立故障域。
+
+原方案 B（sensetime 常态首位）**否决常态**：能力弱于 agnes/M3，仅作故障态热备。
+C/D/E 维持否决（C 语义风险、D 破 OpenAI 协议、E 本地能力不足）。
+
+待办：P0 两项立项开工（建议下次 v2.9/release 前完成）；P1 两项排期。
+
+## 评审 3 问均已答复（2026-09-03 收）
+
+1. **A+B 是否合理 / 有更优 fallback？** → 否决静态 A+B，改 A+B′+F+G；F 按故障域熔断为 P0；Cloudflare Workers AI 作独立直连热备（P1）。
+2. **capability 误标如何自动化检测？** → G：渠道注册时自动跑 chat/vision/tools 三测 + fail-closed（P0）。
+3. **OR 4 key 弱 provider 限流调度？** → 归属延迟 hedging/health 切池（P2 有条件做），优先补齐被动快速落点（优先落地 P0 两项）。
 
 ## 关联
 
