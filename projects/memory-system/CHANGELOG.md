@@ -4,6 +4,11 @@
 
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
+## 2026-09-03
+- [归档] DROP S-20260814-16 — 记忆线路由定稿，滚出「已完成」8 条窗口。
+- Claude（调度大脑）：镜像版（vip-48 extend）咨询「Obsidian/GitHub/飞书 三角色定位」定稿 → 落 handbook `D:\通用规范\50-知识管理三工具规范.md`（单写真源法则 / Owner Source 表 / 2-vault / 四坑）。同时把 D:\记忆 README 由「本地=缓存+飞书双轨」修正为「D:\记忆=唯一秘密 canonical → GitHub yongtai-memory=镜像，飞书退出记忆主链（仅审计）」，Home.md 同口径，已 push yongtai-memory。新增 5 条 Claude 记忆入镜像（延长 extend/烧网关/DeepSeek Harness/浏览器元素定位/镜像生成器+下载自存）并补索引。
+- Claude（调度大脑）：记忆项目审计修正——v2.8 限时执行位（GLM 5.3 flash 1 亿 token）已于 2026-09-02 到期，project_v28_execution_phase 改「历史阶段」口径，三大待办留待确认是否闭环；同步 Claude 记忆 + D:\记忆 镜像。
+
 ## 2026-08-21
 - [归档] DROP S-20260814-19 — 记忆系统 v2.1 升级完成（S-20260814-21 已确认 v2.1 落地），"进行中"→"已完成"。
 - [归档] DROP S-20260814-17 — 落地记忆系统 v2.1 全部 6 项优先级已由 S-20260814-21 完成，从"下一步"移除。
