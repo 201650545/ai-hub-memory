@@ -96,7 +96,32 @@
 原方案 B（sensetime 常态首位）**否决常态**：能力弱于 agnes/M3，仅作故障态热备。
 C/D/E 维持否决（C 语义风险、D 破 OpenAI 协议、E 本地能力不足）。
 
-待办：**P0 两项已落地（2026-09-03）**：F 新增 `fault_domains.py`（proxy 域反应式熔断 + `request_deadline_s=30` 封死链；配置 `data/search_gateway/fault_domains.json`）注入 `api_gateway.py:route_completion`；G 新增 `capability_verify.py`（chat/vision/tools 三测 + fail-closed 写回 `model_capabilities.json`），`save_custom_channel` 注册后异步触发。E2E 验证过：转发放通无回归、死渠道注册被 chat:false 隔离、假 tools 渠道被 `check_candidate` 排除。**P1 两项（B′ sensetime 动态升权、Cloudflare Workers AI 直连热备）排期未做**。
+待办：**P0 两项已落地（2026-09-03）**：F 新增 `fault_domains.py`（proxy 域反应式熔断 + `request_deadline_s=30` 封死链；配置 `data/search_gateway/fault_domains.json`）注入 `api_gateway.py:route_completion`；G 新增 `capability_verify.py`（chat/vision/tools 三测 + fail-closed 写回 `model_capabilities.json`），`save_custom_channel` 注册后异步触发。E2E 验证过：转发放通无回归、死渠道注册被 chat:false 隔离、假 tools 渠道被 `check_candidate` 排除。**P1 B′ 已落地（同日）**：`fault_domains.promote_on_proxy_down(chain)`（`any_proxy_tripped` 时把 `promote_channels` 里的**直连**渠道升链首，恢复按实时 trip 自动回落；`fault_domains.json` 的 `promote_channels=["sensetime","cloudflare"]`）注入 `route_completion` 链构建后。进程内验证：正常态零改动、熔断时 sensetime 升 #1、恢复回落、代理渠道不升权。**P1 Cloudflare 直连热备仅剩凭据**：网关侧机制已就位——CF 用既有 POST /api/channels 注册为**无 proxy** 直连自定义渠道即自动成独立故障域，命名为 `cloudflare` 自动纳入热备；只差郭老师填 Workers AI 账号/Worker endpoint/key，注册模板见下。
+
+## Cloudflare Workers AI 直连热备（P1）— 填凭据即激活
+
+机制已由 B′ 覆盖：无 proxy 直连渠道=独立故障域；`promote_channels` 里列了 `cloudflare`，注册即自动纳入 7890 挂时的热备升权。只差一步——郭老师有 Workers AI 账号后，用既有 `POST /api/channels` 注册该自定义渠道（id 命名 `cloudflare`），definition 填以下字段即可（其余栏位照抄 sensetime）：
+
+```json
+{
+  "id": "cloudflare",
+  "name": "Cloudflare Workers AI 直连",
+  "provider": "Cloudflare Workers AI",
+  "billing_type": "free_quota",
+  "billing_tag": "🟢 免费额度",
+  "icon": "/img/brand/cloudflare.png",
+  "base_url": "https://<你的-worker域名>.workers.dev/v1",
+  "env_key": "CLOUDFLARE_AI_TOKEN",
+  "api_format": "openai",
+  "proxy": "",
+  "free": true,
+  "speed": "medium",
+  "default_model": "<Worker 里 OpenAI 兼容路由映射的模型名>",
+  "models": ["<Worker 里映射的模型名>"]
+}
+```
+
+要点：`proxy` 留空（关键——否则又回 7890 死亡域）；`base_url` 指到你的 OpenAI 兼容 Worker（暴露 `/v1/chat/completions`）；key 走网关 `env_key` 机制。注册后 G 会自动跑 capability 三测并 fail-closed，确认真活才进链。模型建议选免费额度下比 llama-3.3-70B 更合适的（GPT 评审提示）。
 
 ## 评审 3 问均已答复（2026-09-03 收）
 
