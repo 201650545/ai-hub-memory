@@ -9,6 +9,7 @@
 - Claude（调度大脑）：镜像版（vip-48 extend）咨询「Obsidian/GitHub/飞书 三角色定位」定稿 → 落 handbook `D:\Work\通用规范\50-知识管理三工具规范.md`（单写真源法则 / Owner Source 表 / 2-vault / 四坑）。同时把 D:\记忆 README 由「本地=缓存+飞书双轨」修正为「D:\记忆=唯一秘密 canonical → GitHub yongtai-memory=镜像，飞书退出记忆主链（仅审计）」，Home.md 同口径，已 push yongtai-memory。新增 5 条 Claude 记忆入镜像（延长 extend/烧网关/DeepSeek Harness/浏览器元素定位/镜像生成器+下载自存）并补索引。
 - Claude（调度大脑）：记忆项目审计修正——v2.8 限时执行位（GLM 5.3 flash 1 亿 token）已于 2026-09-02 到期，project_v28_execution_phase 改「历史阶段」口径，三大待办留待确认是否闭环；同步 Claude 记忆 + D:\记忆 镜像。
 - Claude（调度大脑）：执行 Obsidian 五库→两库（D-20260903-02 落地）——关停 Obsidian，建 `D:\Work` 合并库，移入 通用规范/项目索引/逆天主题/AI平台 四库（各自 .git 完好，git remote 已验：handbook/workspace-index/nitian-theme/ai-platform），`D:\记忆` 独立保留；更新 obsidian.json 注册表为 Work+记忆 两库（备份 obsidian.json.bak-20260903）；重启 Obsidian 自动生成 `D:\Work\.obsidian` 并成功识别。Work 根不做 git 仓（坑B）。旧路径 `D:\通用规范` 等已迁移到 `D:\Work\<子库>\`。
+- Claude（调度大脑）：概念解释器定稿落档——GPT Extended（vip-16，走文档化 wendabao 账号池流程 2026-09-03）实读 5 仓问诊，答 Q1 项目索引索引什么/Q2 逆天主题进不进/Q3 AI平台干什么；**采用 GPT 定稿结构**：解释器=workspace-index 仓内 `concepts/` 小目录（语义真源，非第五子库非单独仓非 handbook），projects.yaml 继续独占路由真源、concepts 独占语义真源。落 concepts/README+TEMPLATE+00/10/20/30 六文件 + 原始问诊回复归档（CONSULT-2026-09-03，commit 4d05ecf→efddb41 已 push）。同时把 workspace-index README 扩为 WHERE(projects.yaml)+WHAT(concepts) 双真源口径。删除自建临时 `D:\Work\解释器\`。
 
 ## 2026-08-21
 - [归档] DROP S-20260814-19 — 记忆系统 v2.1 升级完成（S-20260814-21 已确认 v2.1 落地），"进行中"→"已完成"。
