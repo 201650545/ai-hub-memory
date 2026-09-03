@@ -5,6 +5,8 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-09-03
+- Claude（调度大脑）：网关防洪批次合并上分支——RFC v2 P0 **故障域熔断 F**（fault_domains.py：共享 egress 代理反应式熔断 + promote_on_proxy_down 直连热备升权 + request_deadline 封死链，消灭代理挂时 30s+ 串行死等）+ **能力契约自测 G**（capability_verify.py：渠道注册异步实测 chat/vision/tools 三测，不符 fail-closed 排除，防误标 tools 重演），连同价格闸门/resource_config/能力准入等在途接线整批提交 monorepo `refactor/monorepo-20260812` `3949c3e`（14 文件 1537 行；fault_domains.json 为 gitignored 运行时配置；190 个无关 untracked 脚手架原样保留）。未做破坏性行为验证（需 kill 共享代理 7890 恐扰运行时工具，待你定）。
+- Claude（调度大脑）：概念解释器 v2 重构后收尾——GPT §3.2 固定入口落位：建 `D:\Work\Home.md`（Work vault 首页，四子库 + 概念解释器链接 + 读取顺序，非 git 仓免提交）；GPT 指出的路径漂移修正 ai-platform Home/docs00（→`D:\Work\AI平台`/`D:\Work\项目索引`）+ nitian-theme README（→`D:\Work\逆天主题`），仅改当前事实文档、历史 RFC/迁移记录保持原样，commit `dc81a46` + `26ecdca` 已 push。
 - [归档] DROP S-20260814-16 — 记忆线路由定稿，滚出「已完成」8 条窗口。
 - Claude（调度大脑）：镜像版（vip-48 extend）咨询「Obsidian/GitHub/飞书 三角色定位」定稿 → 落 handbook `D:\Work\通用规范\50-知识管理三工具规范.md`（单写真源法则 / Owner Source 表 / 2-vault / 四坑）。同时把 D:\记忆 README 由「本地=缓存+飞书双轨」修正为「D:\记忆=唯一秘密 canonical → GitHub yongtai-memory=镜像，飞书退出记忆主链（仅审计）」，Home.md 同口径，已 push yongtai-memory。新增 5 条 Claude 记忆入镜像（延长 extend/烧网关/DeepSeek Harness/浏览器元素定位/镜像生成器+下载自存）并补索引。
 - Claude（调度大脑）：记忆项目审计修正——v2.8 限时执行位（GLM 5.3 flash 1 亿 token）已于 2026-09-02 到期，project_v28_execution_phase 改「历史阶段」口径，三大待办留待确认是否闭环；同步 Claude 记忆 + D:\记忆 镜像。
