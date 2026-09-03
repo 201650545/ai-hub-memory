@@ -130,3 +130,20 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 - 首次备份（21:38）打包于写入当日记忆文件**之前**，为保持「一天一份、内容最新」，已用**临时文件 → 校验通过 → 原子替换**的方式重打包同一文件名，未新增冗余文件、未产生重复条目。
 - 最终：`ai-hub-memory_2026-09-01_2138.zip`，**199 条目 / 1393.3 KB**，`testzip()` 无坏文件、.git 79 条目、核心 .git 文件齐全、解包后 `git log` 正常且 HEAD=`cfa902b`、无重复条目。
 - 注：解包后 `git status` 显示**不干净**属**正常**——正是上述 2 个未提交记忆文件，备份如实保留了未提交改动（这是优点，不是缺陷）。判读时勿误判为备份损坏。
+
+## 2026-09-02 21:03（第 5 次执行 / 完全成功，昨日积压已清空）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12），耗时约 1 分钟（网络恢复后回归常规）
+- **网络已恢复**：经代理 baidu 200 / github 200（直连 github 仍不通）→ 9-01 的 mihomo 挂死自行解除，未做任何人工干预
+- Git：提交昨日遗留的 2 项（本 memory.md + `.workbuddy/memory/2026-09-01.md`）→ `pull --ff-only` 失败（**真实分叉**，远端在离线期前进：5482303 三端同步、0fefed5/31a4390/4bbc355 nitian-theme v3 设计稿、5fc53a8 ai-resources）→ `rebase origin/master` rc=0 **无冲突** → push fast-forward 成功（**未使用 force**）
+- 一致性：HEAD == origin/master == **远端实际** `4b9d249`（`git ls-remote` 核实，非本地缓存 ref），ahead/behind = 0/0，工作区干净
+- 备份：`D:\记忆备份\ai-hub-memory_2026-09-02_2103.zip`，**234 条目 / 1703.77 KB**，严格校验通过：`testzip()` 无坏文件、.git 93 条目（HEAD/config/index/packed-refs/`refs/heads/master`/`refs/remotes/origin/master` 齐全、61 objects、4 reflog）、解包实测 `git log` 正常且 HEAD=`4b9d249`、`git status` **干净**、fsck rc=0（仅 1 个无害 dangling tree）、核心文件齐全、无重复条目
+- 清理：0 份过期（>30 天），现存 6 份（8-28、8-29、8-30、8-31、9-01、9-02）
+
+### 沿用要点（下次执行）
+
+1. **rc 指纹判读表（累计三次经验）**：`rc=-1` = 180s 超时（网络挂起，如 9-01）；`rc=128` = Git 层拒绝（如 8-30）；`pull --ff-only` 失败后 rebase rc=0 且 **push 立即成功** → 说明是真实分叉且网络正常（本次）。**先跑一次 8 秒 curl 双探测（直连/代理 × 百度/GitHub）再决定策略**，可避免 30 分钟空转。
+2. **「HEAD==origin/master」仍不可单独采信**：本次用 `git ls-remote origin refs/heads/master` 与本地 HEAD 比对才确认真实一致。固化流程：`rev-parse HEAD` + `ls-remote` + 双向 `A..B` 计数，三者齐备才算同步。
+3. **`git rev-parse --short HEAD origin/master`（多参数）在本环境报 `Needed a single revision`**，非仓库故障——分开单独调用即正常。勿据此误判仓库损坏。
+4. **脚本改进建议（第三次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次虽未触发该缺陷（确为真实分叉），但风险仍在。
+5. 临时校验脚本 `scripts/_verify_backup_tmp.py` 用完即删，已清理；解包校验必须用显式 Windows 绝对路径（`tempfile.gettempdir()`），Git Bash 的 `/tmp` 会被 Python 拼成 `D:\tmp\`。
