@@ -146,4 +146,12 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 2. **「HEAD==origin/master」仍不可单独采信**：本次用 `git ls-remote origin refs/heads/master` 与本地 HEAD 比对才确认真实一致。固化流程：`rev-parse HEAD` + `ls-remote` + 双向 `A..B` 计数，三者齐备才算同步。
 3. **`git rev-parse --short HEAD origin/master`（多参数）在本环境报 `Needed a single revision`**，非仓库故障——分开单独调用即正常。勿据此误判仓库损坏。
 4. **脚本改进建议（第三次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次虽未触发该缺陷（确为真实分叉），但风险仍在。
-5. 临时校验脚本 `scripts/_verify_backup_tmp.py` 用完即删，已清理；解包校验必须用显式 Windows 绝对路径（`tempfile.gettempdir()`），Git Bash 的 `/tmp` 会被 Python 拼成 `D:\tmp\`。
+5. 临时校验脚本（`_verify_backup_tmp.py` / `_repack_backup_tmp.py` / `_verify_final_tmp.py`）用完即删，已清理；解包校验必须用显式 Windows 绝对路径（`tempfile.gettempdir()`），Git Bash 的 `/tmp` 会被 Python 拼成 `D:\tmp\`。
+
+### 收尾补推 + 重打包（21:08）
+
+- 写入当日记忆文件后追加 commit `80cbbb6` 并推送成功（fast-forward，`4b9d249..80cbbb6`），远端实际 HEAD 已同步为 `80cbbb6`。
+- 为保持「一天一份、内容最新」，对当日备份做了**原子替换式重打包**：最终 `ai-hub-memory_2026-09-02_2103.zip` = **242 条目 / 1716.16 KB**，testzip 无坏文件、.git 100 条目（核心齐全）、无重复条目；解包实测 HEAD=`80cbbb6`、`git status` 干净、`git fsck` rc=0（仅 1 个无害 dangling tree）、含当日 `.workbuddy/memory/2026-09-02.md`。
+- 目录整洁：6 份备份（8-28 ~ 9-02）+ backup.log，无 `.old` / 无临时文件残留。
+
+**⚠️ 新坑（重打包必看）**：`os.replace()` 在 Windows 上**不能跨盘**——临时包放在 `tempfile.gettempdir()`（C 盘）而目标在 D 盘会抛 `[WinError 17] 系统无法将文件移到不同的磁盘驱动器`，且此时原包已被改名成 `.zip.old`（虽无数据丢失但目标文件名临时缺失）。**正确做法：临时 zip 必须建在与目标相同的目录下**（`D:\记忆备份\_repack_*.tmp.zip`）。
