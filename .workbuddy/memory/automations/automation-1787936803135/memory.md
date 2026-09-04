@@ -195,6 +195,10 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 4. **脚本改进建议（第四次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败（fetch 失败）直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次未触发该缺陷（确为真实分叉），但风险仍在。
 5. 临时校验脚本放**仓库外**（`D:\记忆备份\_verify_tmp.py`）已验证有效，用完即删；解包校验用 `tempfile.gettempdir()` 的 Windows 绝对路径，解包根即 TMPX 本身（无 `ai-hub-memory/` 子层）；重打包临时 zip 必须与目标**同盘同目录**（跨盘 `os.replace()` 会抛 WinError 17）。
 
-### 收尾（21:06）
+### 收尾（21:06）— 最终态以此段为准
 
-- 写入 `.workbuddy/memory/2026-09-03.md` + 追加本条目后，一次性 `commit + push` 成功（fast-forward），并做**一次**原子替换式重打包，使备份包含当日全部记忆内容。
+- 写入 `.workbuddy/memory/2026-09-03.md` + 追加本条目后，一次性 `commit + push` 成功（fast-forward `0e81247..32c80fd`）。
+- **最终 HEAD = `32c80fd`**（非上文的 `0e81247`）：本地 HEAD == `origin/master` == 远端实际 == `32c80fd`，ahead/behind = 0/0，**工作区干净**（本次未留待提交项，与 9-01/9-02 不同）。
+- 为保持「一天一份、内容最新」，做了**一次**原子替换式重打包：**最终交付 `ai-hub-memory_2026-09-03_2104.zip` = 367 条目 / 1986.65 KB**；testzip 无坏文件、无重复、.git 220 条目（核心齐全）、含今日 `.workbuddy/memory/2026-09-03.md`；解包实测 HEAD=`32c80fd`、`git status` 干净、`git fsck` rc=0（仅 1 个无害 dangling）、316 提交。（本行续写后再打包则条目数微增，以目录实际文件为准。）
+- 备份目录：7 份 zip（8-28 ~ 9-03）+ backup.log，无 `.old` / `_*` 残留；0 份过期。
+- **本次为历次最干净的一次**：2 次提交、2 次打包、9 秒完成、零失败零重试，未出现 9-02 的循环。
