@@ -5,6 +5,7 @@
 > 只追加。每个 Agent 干完写一条「谁 / 何时 / 做了什么」。
 
 ## 2026-09-03
+- Claude（调度大脑）：**逆天主题总设定稿**——GPT 架构审阅（14 章骨架）+ 用户定位「3:先伴生后转独立」落地 `docs/设计/00-总体设计与架构.md` v1.0（SSOT，211 行，commit `10f079e`）。关键：双轴 realmId×chronicleKey 解耦、四层叙事不混写、三类状态分离、Event Adapter A/B、资产 URI 六维契约、**元婴→化神纵切 MVP**、A0→A4 设计闸门。存量闸门即时生效：27/27 停铺新资产、T3 23 条暂停铺量、T2 视频只收改焦点元婴/化神纵切演出、v3 评审继续但编码等接口冻结。不重复 03 规格与 v3（各为真源）。
 - Claude（调度大脑）：网关防洪批次合并上分支——RFC v2 P0 **故障域熔断 F**（fault_domains.py：共享 egress 代理反应式熔断 + promote_on_proxy_down 直连热备升权 + request_deadline 封死链，消灭代理挂时 30s+ 串行死等）+ **能力契约自测 G**（capability_verify.py：渠道注册异步实测 chat/vision/tools 三测，不符 fail-closed 排除，防误标 tools 重演），连同价格闸门/resource_config/能力准入等在途接线整批提交 monorepo `refactor/monorepo-20260812` `3949c3e`（14 文件 1537 行；fault_domains.json 为 gitignored 运行时配置；190 个无关 untracked 脚手架原样保留）。未做破坏性行为验证（需 kill 共享代理 7890 恐扰运行时工具，待你定）。
 - Claude（调度大脑）：概念解释器 v2 重构后收尾——GPT §3.2 固定入口落位：建 `D:\Work\Home.md`（Work vault 首页，四子库 + 概念解释器链接 + 读取顺序，非 git 仓免提交）；GPT 指出的路径漂移修正 ai-platform Home/docs00（→`D:\Work\AI平台`/`D:\Work\项目索引`）+ nitian-theme README（→`D:\Work\逆天主题`），仅改当前事实文档、历史 RFC/迁移记录保持原样，commit `dc81a46` + `26ecdca` 已 push。
 - [归档] DROP S-20260814-16 — 记忆线路由定稿，滚出「已完成」8 条窗口。
