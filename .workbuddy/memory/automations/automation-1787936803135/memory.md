@@ -175,3 +175,26 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 - **备忘**：本订正段写入后工作区会变脏 1 项，次日备份会自动 commit+push（与 9-01 同）。
 
 **⚠️ 第三个坑（自包含）**：临时脚本若放在**仓库内**并调用 `git add -A`，会把**自身**提交进去（本次 `13c804f` 误纳 `scripts/_finalize2_tmp.py`），且 `git show --stat` 会把长文件名截断显示为 `scripts/_final`，极易误判为异常文件。**正确做法：临时脚本一律放在仓库外**（如 `D:\记忆备份\`），且打包时用 `fn.startswith('_')` 过滤。
+
+## 2026-09-03 21:04（第 6 次执行 / 完全成功，一次成型无重打包循环）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12），**耗时 9 秒**（网络健康，零重试，无超时）
+- Git：commit 2 项（9-02 遗留：本 memory.md + `.workbuddy/memory/2026-09-02.md`）→ `pull --ff-only` 失败（**真实分叉**）→ `rebase origin/master` rc=0 **无冲突** → push fast-forward 成功（**未使用 force**）
+- 分叉成因：远端在两次备份间由其他 Agent 前进 **8 个提交**（`4c9e375` RFC v2 定稿、`87763f3`/`dc8eebd` 网关防洪 P0+P1 落地、`a1a2970` Obsidian 五库→两库、`3f1a3e1` D-20260903-02、`b4363c0` 概念解释器定稿、`daae764`、`a9bc4c3`）；本地仅 2 个 `.workbuddy/memory/` 文件 → **零重叠，rebase 无冲突**
+- 一致性（三向齐备）：本地 HEAD == `origin/master` == **远端实际**（`git ls-remote` 核实）== **`0e81247`**，ahead/behind = 0/0，工作区干净
+- 历史完整性：昨日 `323e21c` 仍可达，共 **315 个提交**，无丢失；提交链 `a9bc4c3 → 0e81247` 线性
+- 备份：`D:\记忆备份\ai-hub-memory_2026-09-03_2104.zip`，**359 条目 / 1970.04 KB**（较昨日 260 条目显著增长，因远端 8 提交新增 concepts/workspace-index 等文件，属正常）
+- 严格校验通过：`testzip()` 无坏文件、无重复条目、**.git 213 条目（181 objects）**、`.git/HEAD`/`config`/`packed-refs`/`index`/`refs/heads/master`/`refs/remotes/origin/master` 齐全、解包实测 HEAD=`0e81247`、`git status` **干净**、`git fsck` rc=0（仅 1 个无害 dangling）、解包后 315 提交
+- 清理：0 份过期（>30 天，最老 8-28 仅 6 天），现存 **7 份**（8-28 ~ 9-03），目录无 `.old` / `_*` 残留
+
+### 沿用要点（下次执行）
+
+1. **⚠️ 修正 9-02 的探测建议（重要，避免误判网络故障）**：本次 **curl 探测给出假阴性**——直连与代理访问 `github.com` 均返回 `000`（超时），但 `git ls-remote origin` rc=0 完全正常。**GitHub 可用性必须以 `git ls-remote origin refs/heads/master`（加 timeout 60）为准，不要用 curl 访问 github.com 判断**；网页根路径与 git HTTPS 端点表现不一致。百度探测仍可用于判断代理进程是否存活。
+2. **「先写记忆 → 后跑脚本」的可执行解法（本次验证有效）**：9-02 遗留的教训是「跑脚本 → 写记忆 → 备份落后 1 提交 → 重打包」会成环。本次采用**两段式收尾**：先跑脚本完成当轮 commit+push+打包 → 再写两份记忆文件 → **只做一次** `commit+push` + **一次**原子替换重打包。全流程仅 2 次提交、2 次打包，未出现 9-02 那种 3 次打包循环。**下次沿用此顺序**。
+3. **rc 指纹判读表（四次经验总结，不变）**：`rc=-1` = 180s 超时（网络挂起，9-01）；`rc=128` = Git 层拒绝（8-30）；`ff-only 失败 → rebase rc=0 → push 立即成功` = 真实分叉且网络正常（8-31、9-02、9-03 三次均为此路径，属健康常态）。
+4. **脚本改进建议（第四次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败（fetch 失败）直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次未触发该缺陷（确为真实分叉），但风险仍在。
+5. 临时校验脚本放**仓库外**（`D:\记忆备份\_verify_tmp.py`）已验证有效，用完即删；解包校验用 `tempfile.gettempdir()` 的 Windows 绝对路径，解包根即 TMPX 本身（无 `ai-hub-memory/` 子层）；重打包临时 zip 必须与目标**同盘同目录**（跨盘 `os.replace()` 会抛 WinError 17）。
+
+### 收尾（21:06）
+
+- 写入 `.workbuddy/memory/2026-09-03.md` + 追加本条目后，一次性 `commit + push` 成功（fast-forward），并做**一次**原子替换式重打包，使备份包含当日全部记忆内容。
