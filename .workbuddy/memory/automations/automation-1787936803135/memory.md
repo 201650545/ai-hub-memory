@@ -246,3 +246,10 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
    - 解包根目录即 TMPX 本身，**无** `ai-hub-memory/` 子层；用 `tempfile.gettempdir()` 的 Windows 绝对路径（9-02）。
    - `git rev-parse --short HEAD origin/master`（多参数）在本环境报 `Needed a single revision`，须分开调用。
 6. **当前无积压**：本次结束后三方完全同步且工作区干净。次日首次执行时，工作区预期 dirty 1 项（本文件的「最终 HEAD」追加行），属正常，脚本会自动提交。
+
+### 最终态（本轮收敛，以此段为准）
+
+- **最终 HEAD = `7d1b4b4`**（收尾提交，内容：写入 `.workbuddy/memory/2026-09-04.md` + 本条目）。
+- 提交链（2 条，均 fast-forward 推送，**全程未用 force**）：`eb9ead3`（脚本自动提交）→ `7d1b4b4`（收尾：两份记忆文件）。共 **319 个提交**。
+- 打包时刻仓库 HEAD = `7d1b4b4`，包内 HEAD 与之严格一致（按 9-03 定稿规则，不再为订正 HEAD 数字而二次重打包）。
+- 本行（最终 HEAD 记录）与本次备份校验结论写入后**不提交、不重打包**，留在工作区由次日脚本第一个 `git add -A && git commit` 自动带走——这是刻意设计，以保证「仓库 HEAD == 包内 HEAD」。
