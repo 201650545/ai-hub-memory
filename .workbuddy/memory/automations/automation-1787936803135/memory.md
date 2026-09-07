@@ -291,3 +291,38 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 - 提交链（2 条，均 fast-forward 推送，**全程未用 force**）：`5c961b2`（脚本自动提交）→ `fb482c3`（收尾：两份记忆文件）。共 **322 个提交**。
 - 三方一致：本地 HEAD == `origin/master` == 远端实际（`git ls-remote` 核实）== `fb482c3`，ahead/behind = 0/0。
 - 已做**一次**原子替换式重打包（包内 HEAD 与之严格一致，含当日 `.workbuddy/memory/2026-09-05.md` 与本收尾段）。此后**不再追加、不再重打包**。
+
+## 2026-09-07 08:38（第 9 次执行 / 完全成功，一次成型）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12），**耗时约 16 秒**，零失败、无超时、无空转。
+- Git：commit 1 项（9-05 收尾遗留的本文件续写）→ `pull --ff-only` **直接成功（无分叉）** → push fast-forward 成功（**全程未用 force**）。脚本提交 = `51f48b7`「chore: 自动备份同步 2026-09-07 08:38」。
+- 一致性（三向齐备）：本地 HEAD == `origin/master` == 远端实际（`git ls-remote` 复核）== `51f48b7`，ahead/behind = 0/0，**工作区干净**，共 **323 个提交**。
+- 历史完整性：9-05 的 `fb482c3` 经 `git merge-base --is-ancestor` 验证**仍可达**，无提交丢失。
+- 备份：`D:\记忆备份\ai-hub-memory_2026-09-07_0838.zip`，**420 条目 / 2101.20 KB**（较 9-05 的 405 条目 +15）。
+- 清理：0 份过期（>30 天，最老 8-28 仅 10 天），现存 **10 份**（8-28 ~ 9-07）+ backup.log，目录无 `.old` / `_*` 残留。
+
+### 备份包严格校验（首轮包，420 条目 / 2101.20 KB）
+
+- `zipfile.testzip()` 无坏文件；**无重复条目**；无临时脚本 / `.old` / `__pycache__` 残留。
+- `.git` **271 条目**；`.git/HEAD` / `config` / `packed-refs` / `index` / `refs/heads/master` / `refs/remotes/origin/master` 六项核心齐全。
+- 解包实测：`git log` 正常、包内 HEAD == `51f48b7`、`git status` **干净**、`git fsck` rc=0（仅 1 个无害 dangling tree）、323 提交、核心文件（AGENTS.md / STATE.md / MEMORY.json / README.md）齐全。
+- 临时校验脚本置于仓库外 `D:\记忆备份\_verify_tmp.py`，用完已删。
+
+### 沿用要点（下次执行）
+
+1. **不做 curl 网络探测**（curl 访问 github.com 会假阴性）；以 `git ls-remote` 为准。
+2. **新增（本次首见）：单次 `git ls-remote` 可能瞬时 `schannel: SSL/TLS handshake failed`（rc=128）**。连续重试 3 次均成功且返回同一 SHA。判据：**失败后必须重试 ≥2 次**再下结论，不可据此误报「远端不可达 / 同步失败」。
+3. **rc 指纹判读表（七次经验）**：`rc=-1` = 180s 超时（网络挂起，9-01）；`rc=128` = Git 层拒绝（8-30）**或瞬时 SSL 抖动（9-07，可重试恢复）**；`ff-only 直接成功 → push 立即成功` = 无分叉的健康常态（9-07）；`ff-only 失败 → rebase rc=0 → push 成功` = 真实分叉且网络正常（8-31、9-02、9-03、9-05）。
+4. **「HEAD==origin/master」不可单独采信**：必须与 `git ls-remote` 远端实际值 + 双向 `A..B` 计数三者齐备才算同步。
+5. **脚本改进建议（第七次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败（fetch 失败）直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次未触发该缺陷，风险仍在。
+6. **两段式收尾已连续四次有效（9-03 / 9-04 / 9-05 / 9-07）**：先跑脚本（commit+push+打包）→ 再写记忆文件 → **只做一次** `commit+push` + **一次**原子替换式重打包。
+7. **Windows 工程约束（已反复踩过，勿再犯）**：
+   - 临时脚本放**仓库外**（`D:\记忆备份\`），否则被 `git add -A` 误纳（9-02）。
+   - 重打包临时 zip 与目标**同盘同目录**，跨盘 `os.replace()` 抛 WinError 17（9-02）。
+   - 解包根目录即 TMPX 本身，**无** `ai-hub-memory/` 子层；用 `tempfile.gettempdir()` 的 Windows 绝对路径（9-02）。
+   - `git rev-parse --short HEAD origin/master`（多参数）在本环境报 `Needed a single revision`，须分开调用。
+
+### 收尾（本轮以此段为准）
+
+- **最终 HEAD** 见提交链：`51f48b7`（脚本自动提交）→ 收尾提交（内容：写入 `.workbuddy/memory/2026-09-07.md` + 本条目）。
+- 已做**一次**原子替换式重打包（包内 HEAD 与最终 HEAD 严格一致，含当日 `.workbuddy/memory/2026-09-07.md` 与本收尾段）。此后**不再追加、不再重打包**。
