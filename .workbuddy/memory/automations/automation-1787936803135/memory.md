@@ -286,3 +286,8 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
    - `git rev-parse --short HEAD origin/master`（多参数）在本环境报 `Needed a single revision`，须分开调用。
 
 ### 收尾（本轮以此段为准）
+
+- **最终 HEAD = `fb482c3`**（收尾提交，内容：写入 `.workbuddy/memory/2026-09-05.md` + 本条目）。
+- 提交链（2 条，均 fast-forward 推送，**全程未用 force**）：`5c961b2`（脚本自动提交）→ `fb482c3`（收尾：两份记忆文件）。共 **322 个提交**。
+- 三方一致：本地 HEAD == `origin/master` == 远端实际（`git ls-remote` 核实）== `fb482c3`，ahead/behind = 0/0。
+- 已做**一次**原子替换式重打包（包内 HEAD 与之严格一致，含当日 `.workbuddy/memory/2026-09-05.md` 与本收尾段）。此后**不再追加、不再重打包**。
