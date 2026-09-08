@@ -326,3 +326,28 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 
 - **最终 HEAD** 见提交链：`51f48b7`（脚本自动提交）→ 收尾提交（内容：写入 `.workbuddy/memory/2026-09-07.md` + 本条目）。
 - 已做**一次**原子替换式重打包（包内 HEAD 与最终 HEAD 严格一致，含当日 `.workbuddy/memory/2026-09-07.md` 与本收尾段）。此后**不再追加、不再重打包**。
+
+## 2026-09-07 21:01（第 10 次执行 / 完全成功，同日第二次触发）
+
+- 运行：`python scripts/backup_memory.py`（managed Python 3.13.12），**耗时约 15 秒**，零失败、零重试、无超时、未触发 rebase。
+- Git：工作区**干净无待提交**（晨间收尾提交 `cb84c2a` 已推送，故本次无脚本提交）→ `push` 直接成功（脚本日志「工作区干净，无需提交 / push 成功」）。
+- 一致性（三向齐备）：本地 HEAD == `origin/master` == 远端实际（`git ls-remote` 复核）== `cb84c2a`，ahead/behind = 0/0，工作区干净，共 **324 个提交**；`51f48b7` 经 `merge-base --is-ancestor` 验证仍可达，无提交丢失。
+- 备份：`D:\记忆备份\ai-hub-memory_2026-09-07_2101.zip`，**429 条目 / 2120.78 KB**（较晨间 420 条目 +9）。
+- 严格校验通过：testzip 无坏文件、无重复条目、无临时脚本 / `.old` / `__pycache__` 残留、`.git` 279 条目、解包实测 HEAD=`cb84c2a` / `git status` **干净** / 324 提交 / `git fsck` rc=0（**0 dangling**）、核心文件齐全、含当日 `.workbuddy/memory/2026-09-07.md`。
+- 清理：0 份过期（>30 天，最老 8-28 仅 11 天），现存 **11 份**（8-28 ~ 9-07，其中 9-07 两份）+ backup.log，目录无 `.old` / `_*` 残留。
+- 临时校验脚本置于仓库外 `D:\记忆备份\_verify_tmp.py`，用完已删。
+
+### 沿用要点（下次执行）
+
+1. **同日两次触发（本次首见）**：9-07 08:38 为补跑（9-06 未触发），21:01 为当日常规定时，两次均成功。**未做删除合并**——两份 zip 对应不同时点快照，保留可提升恢复粒度；仅需注意「现存份数」计数会 +1，勿误判为异常。
+2. **工作区干净时的脚本行为**：无待提交项 → 只打印「工作区干净，无需提交」并直接 push。此时**脚本本身不产生提交**，HEAD 与上次执行相同属正常，不要误判为脚本未生效。
+3. **校验清单 `.git/remotes` 项应移除（误报）**：该目录为 git 早期遗留结构，现代 git 用 `.git/config` + `.git/refs/remotes/`；本次已确认 `refs/remotes/origin/master` 齐全。下次校验脚本去掉此项以免噪音。
+4. **rc 指纹判读表（八次经验）**：`rc=-1` = 180s 超时（网络挂起，9-01）；`rc=128` = Git 层拒绝（8-30）或瞬时 SSL 抖动（9-07 晨间，可重试恢复）；`直接 push 成功` = 无分叉健康常态（9-04、9-07 两次）；`ff-only 失败 → rebase rc=0 → push 成功` = 真实分叉且网络正常（8-31、9-02、9-03、9-05）。
+5. **不做 curl 网络探测**（curl 访问 github.com 会假阴性）；以 `git ls-remote origin refs/heads/master`（超时 60、失败重试 ≥2 次）为准。
+6. **脚本改进建议（第八次提出，仍未授权修改）**：`git pull --ff-only` 应拆成 `fetch` / `merge` 两步分别判错，网络类失败（fetch 失败）直接中止重试，避免把联网失败误报成分叉并空转 3 次 rebase。本次未触发该缺陷，风险仍在。
+7. **Windows 工程约束（已反复踩过，勿再犯）**：临时脚本放仓库外；重打包临时 zip 与目标同盘同目录（跨盘 `os.replace()` 抛 WinError 17）；解包根目录即 TMPX 本身，无 `ai-hub-memory/` 子层；`git rev-parse --short HEAD origin/master` 多参数会报 `Needed a single revision`，须分开调用。
+
+### 收尾（本轮以此段为准）
+
+- 收尾提交内容：写入 `.workbuddy/memory/2026-09-07.md` 21:01 段落 + 本条目，fast-forward 推送，**全程未用 force**。
+- 已做**一次**原子替换式重打包（包内 HEAD 与最终 HEAD 严格一致，含本收尾段）。此后**不再追加、不再重打包**。
