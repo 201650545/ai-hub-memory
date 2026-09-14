@@ -490,4 +490,6 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 ### 收尾（本轮以此段为准）
 
 - 收尾提交内容：写入 `.workbuddy/memory/2026-09-12.md` + 本条目，fast-forward 推送，**全程未用 force**。
-- 已做**一次**原子替换式重打包（包内 HEAD 与最终 HEAD 严格一致，含本收尾段）。此后**不再追加、不再重打包**。
+- **最终 HEAD = `520ad0c`**（333 个提交）。提交链（2 条，均 fast-forward 推送，**全程未用 force**）：`4195f30`（9-11 收尾提交，本次脚本未新增提交）→ `520ad0c`（收尾：两份记忆文件）。
+- 已做**一次**原子替换式重打包：最终包 = **502 条目 / 2312.19 KB**，包内 HEAD=`520ad0c` 与最终 HEAD 严格一致，testzip 无坏文件、无重复条目、`.git` 348 条目、核心六项齐全、含当日 `.workbuddy/memory/2026-09-12.md`、解包实测 `git status` 干净 / 333 提交 / `git fsck` rc=0（仅 1 个无害 dangling tree）。此后**不再追加、不再重打包**。
+- 本行写入后**不提交、不重打包**，留在工作区由下次脚本首个 `git add -A && git commit` 自动带走（9-03 定稿规则）。
