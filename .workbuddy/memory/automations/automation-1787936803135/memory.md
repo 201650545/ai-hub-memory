@@ -555,3 +555,29 @@ cd /d/ai-hub-memory && git add -A && git commit -m "chore: 备份自动化执行
 - 收尾提交内容：写入 `.workbuddy/memory/2026-09-15.md` + 本条目，fast-forward 推送，**全程未用 force**。
 - 提交链（本次仅 1 条收尾提交）：`9644976`（9-14 收尾提交，脚本本次未新增）→ 收尾提交（两份记忆文件），共 **336 个提交**。
 - 已做**一次**原子替换式重打包（包内 HEAD 与最终 HEAD 严格一致，含当日 `.workbuddy/memory/2026-09-15.md` 与本收尾段）。此后**不再追加、不再重打包**。
+
+### ⚠️ 新故障指纹（本次首见，务必记录）：push 报 `cannot lock ref` 但远端实际已更新
+
+**现象**：收尾 commit `f07de0a` 后 `git pull --ff-only` 显示 `Already up to date.`，紧接着 `git push` **被拒绝**：
+
+```
+! [remote rejected] master -> master (cannot lock ref 'refs/heads/master':
+  is at f07de0ab834fc2394690d6dab6b1f683a17a9523 but expected 9644976169ebfc28be0c2098ad512b7c4023fc44)
+```
+
+**判读（关键，勿误判为推送失败）**：
+
+- 报错里的 `is at f07de0a` 正是**我们自己刚创建的提交**，说明远端 ref **已经**指向目标提交——即推送实质上已生效，只是客户端持有的 `expected` 旧值（9644976）与服务端锁定时读到的值不一致，触发 GitHub 的 compare-and-swap 保护。
+- **正确处置：先 `git fetch origin` 再看真相，绝不要 force push**。本次 fetch 输出 `9644976..f07de0a master -> origin/master`，随后三向比对全部一致（HEAD == `origin/master` == `git ls-remote` 远端 == `f07de0a`，ahead/behind = 0/0，336 提交）。
+- 成因推断：客户端 ref 缓存陈旧 + GitHub 端 ref 锁竞争（本仓库存在其他 Agent 与多端会话并发写入，属结构性常态）。
+
+**rc 指纹判读表新增第 4 条**：`remote rejected (cannot lock ref ... is at <我方新SHA> but expected <旧SHA>)` = **良性 ref 锁竞争**，用 `git fetch` + 三向比对复核即可，**禁止 force push**。与 `rc=-1`（网络挂起）、`rc=128`（Git 层拒绝/SSL 抖动）区分开。
+
+**附带发现**：`gh api` 走的是**独立网络路径**（不经 git 的代理配置），本环境仍报 `dial tcp 20.205.243.168:443` 超时（与 8-30 同）。**`gh` 不可用不能作为「GitHub 不可达」的判据**，仍以 `git ls-remote` / `git fetch` 为准。
+
+### 最终态（本轮以此为准）
+
+- **最终 HEAD = `f07de0a`**（336 个提交），本地 == `origin/master` == 远端实际，ahead/behind = 0/0，工作区干净。
+- 最终备份包：`D:\记忆备份\ai-hub-memory_2026-09-15_2101.zip` = **527 条目 / 2384.65 KB**；testzip 无坏文件、无重复条目、`.git` 371 条目（340 objects）、核心六项齐全、无临时脚本/`.old` 残留；解包实测 HEAD=`f07de0a`、`git status` **干净**、336 提交、`git fsck` rc=0（无非 dangling 问题）、核心文件齐全、含当日 `.workbuddy/memory/2026-09-15.md`。
+- 备份目录：**18 份**（8-28 ~ 9-15，其中 9-07 与 9-09 各两份）+ backup.log，无 `.old` / `_*` 残留；0 份过期。
+- 本行及以下**不提交、不重打包**，留在工作区由次日脚本首个 `git add -A && git commit` 自动带走（9-03 定稿规则）。
