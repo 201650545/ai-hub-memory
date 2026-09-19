@@ -1,4 +1,5 @@
 # CHANGELOG.md — AI资源实测 项目流水（append-only）
+- [归档] DROP S-20260830-09 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate3.md。（2026-09-20）
 - [归档] DROP S-20260830-10 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate2.md。（2026-09-20）
 - [归档] DROP S-20260830-08 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate.md。（2026-09-20）
 - S-20260902-01 tokenrhythm.studio（基元律动）渠道接入 + glm-5.3-flash 激活（2026-09-02）。event：opencli 浏览器走 tokenrhythm.studio/account/keys 拿 key + 加渠道 + 选 default=glm-5.3-flash + 实测激活。处理：①opencli 浏览器拿 key（新建 API Key→一次性展示→DOM 抓 sk_tr_YK5C4_...）；②channels.json 加 keys.tokenrhythm + custom_channels.tokenrhythm（base_url=https://tokenrhythm.studio/v1，models=[glm-5.3-flash,deepseek-v4-flash]，default_model=glm-5.3-flash，billing_type=quota 充值档，free=false）；③:3100 重启 2 次；④实测 model=tokenrhythm:glm-5.3-flash → X-Routed-Channel=tokenrhythm、X-Resolved-Model=glm-5.3-flash、cost_cny=0.00005280、billing_pending=false 激活成功。模型目录 20 款全付费；注册送 ¥10 + 待解锁 ¥58（首次有效调用后）。注意：①探测 reachability 全网 SSL EOF（启动 race，chat 调用不受影响）；②glm-5.3-flash 有 reasoning_tokens，max_tokens 建议 200+（2026-09-02，郭老师拍默认 glm-5.3-flash）
@@ -108,3 +109,5 @@
 - D-20260920-01 探针事实注册表架构定稿（源自GPT Extended 评审 9-19）：Probe只产事实（run文件不可变）、Redu（2026-09-20，脚本自动记录）
 - S-20260920-02 Groq 渠道探针测试闭环（probe_groq.py，同 CF 架构）：catalog 13 模型（6 chat 全 （2026-09-20，脚本自动记录）
 - D-20260920-02 Groq 探针结论：①catalog/models 接口 0 消耗可天天跑，chat 判定用排除表（whisper/tt（2026-09-20，脚本自动记录）
+- S-20260920-03 免费档全渠道探针扫描闭环（probe_free_channels.py 通用探针，用户指令：只测免费、禁止付费）：零调用（2026-09-20，脚本自动记录）
+- D-20260920-03 免费渠道探针边界定死（用户 2026-09-20 指令'只测免费档、禁止测付费'是持久红线）：probe_free_ch（2026-09-20，脚本自动记录）

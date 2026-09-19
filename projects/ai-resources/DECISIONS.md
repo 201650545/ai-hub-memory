@@ -15,3 +15,5 @@
 - [D-20260920-01] 探针事实注册表架构定稿（源自GPT Extended 评审 9-19）：Probe只产事实（run文件不可变）、Reducer独占写入真源、Policy只由人定义（billing授权语义/channel_models永不自动写）、Orchestrator只代入（/api/model-state 只读DTO无rank/recommended）。物化规则：capabilities→model_capabilities；billing class=free只补缺不覆盖。下一步：编排模型消费DTO做路由策略（待用户拍板编排角色范围）。（2026-09-20）
 
 - [D-20260920-02] Groq 探针结论：①catalog/models 接口 0 消耗可天天跑，chat 判定用排除表（whisper/tts/guard/orpheus/embed）；②免费档无计费字段，billing 记 rate_limited/requests 而非 neurons；③非 chat 模型（whisper 等）只产 catalog run 不产 access——注册表语义=只记实测事实，非 chat 不算不可用；④默认模型选型看首响应延迟（total_ms）不只 tok/s：compound 166 tok/s 但 3.0s 总耗时（agentic 多步），qwen3.8 1.1s 才是最快响应。（2026-09-20）
+
+- [D-20260920-03] 免费渠道探针边界定死（用户 2026-09-20 指令'只测免费档、禁止测付费'是持久红线）：probe_free_channels.py 内硬编码 FORBIDDEN={deepseek,opencode,tokenrhythm,zenmux,ark-coding}（付费/充值/订阅档），白名单 FREE_CHANNELS 14 渠道，OpenRouter 仅 :free 后缀模型准入，任何未来探针脚本沿用同一边界。映射规则维持：402/403=paid_required（免费渠道上该模型需付费，不再触碰）、429=available 无 perf、400/404=unknown+catalog retired。Billing 物化只写 model_pricing.json 缺失项，不碰 authorized/paid 策略与 channel_models.json/routing.json（人定策略）。新事实：gmi/siliconflow 免费额度已耗尽（几乎全 paid），modelscope/bai/zscc 是免费富矿，后续路由候选优先从这三渠道取。（2026-09-20，调度大脑）（2026-09-20）
