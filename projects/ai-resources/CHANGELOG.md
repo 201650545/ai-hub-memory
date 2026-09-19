@@ -97,3 +97,6 @@
 
 - S-20260903-13 RFC v2 P1 落地（B′ sensetime 动态升权；Cloudflare 热备机制就绪待凭据）（2026-09-03，调度大脑）。**B′**：`search_gateway\fault_domains.py` 新增 `any_proxy_tripped()`+`promote_on_proxy_down(chain)`（代理故障域熔断时把 `promote_channels` 里的直连渠道升链首，恢复按实时 trip 自动回落，正常态零改动；只升直连、代理渠道跳过），`DEFAULTS` 补 `promote_channels` 键（否则被 config() 白名单丢键），注入 `api_gateway.py:route_completion` 链构建后；`fault_domains.json` 设 `promote_channels=["sensetime","cloudflare"]`。进程内 4 断言全过（正常原链/熔断 sensetime 升#1/恢复回落/代理不升权）；重启后实时冒烟无回归（fast→dots3-note-prev 200、deepseek-free→MiniMax-M3 200）。**CF 直连热备**：无 proxy 直连自定义渠道=独立故障域，命名 cloudflare 即自动纳入热备，模板写入 RFC 计划文档 §Cloudflare，只差郭老师填 Workers AI 凭据。
 - [归档] DROP S-20260830-05 — STATE 超 8 上限下沉，条目见 archive/projects/ai-resources/2026/2026-09-03-rotate3.md。（2026-09-03）
+- S-20260919-01 Cloudflare Workers AI 渠道实测（2026-09-19，调度大脑）：用户指派测试该渠道模型情况。结论（2026-09-19，脚本自动记录）
+
+- [归档] DROP S-20260830-06 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-19-rotate.md。（2026-09-19）
