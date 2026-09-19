@@ -11,3 +11,5 @@
 - [D-20260830-01] 不买付费 AI 订阅（2026-08-30 拍板）：评估 Codex Plus 代充 ~145元/月 vs 中转站 88元/300刀 后放弃；免费渠道+积分+镜像版 GPT-5.6/Sora 够用，调度不推付费。（2026-08-30）
 
 - [D-20260830-02] 网关统一剥离思考（2026-08-30 拍板）：所有渠道转发时剥离 reasoning_content（thinking 模型逐 token 流式透传致客户端"输出断续蹦字"，魔塔 V4 Pro 实测每 SSE 事件 1-4 字）；只透传正文，thinking 期间客户端静默等待。（2026-08-30）
+
+- [D-20260920-01] 探针事实注册表架构定稿（源自GPT Extended 评审 9-19）：Probe只产事实（run文件不可变）、Reducer独占写入真源、Policy只由人定义（billing授权语义/channel_models永不自动写）、Orchestrator只代入（/api/model-state 只读DTO无rank/recommended）。物化规则：capabilities→model_capabilities；billing class=free只补缺不覆盖。下一步：编排模型消费DTO做路由策略（待用户拍板编排角色范围）。（2026-09-20）
