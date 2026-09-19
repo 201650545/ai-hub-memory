@@ -13,3 +13,5 @@
 - [D-20260830-02] 网关统一剥离思考（2026-08-30 拍板）：所有渠道转发时剥离 reasoning_content（thinking 模型逐 token 流式透传致客户端"输出断续蹦字"，魔塔 V4 Pro 实测每 SSE 事件 1-4 字）；只透传正文，thinking 期间客户端静默等待。（2026-08-30）
 
 - [D-20260920-01] 探针事实注册表架构定稿（源自GPT Extended 评审 9-19）：Probe只产事实（run文件不可变）、Reducer独占写入真源、Policy只由人定义（billing授权语义/channel_models永不自动写）、Orchestrator只代入（/api/model-state 只读DTO无rank/recommended）。物化规则：capabilities→model_capabilities；billing class=free只补缺不覆盖。下一步：编排模型消费DTO做路由策略（待用户拍板编排角色范围）。（2026-09-20）
+
+- [D-20260920-02] Groq 探针结论：①catalog/models 接口 0 消耗可天天跑，chat 判定用排除表（whisper/tts/guard/orpheus/embed）；②免费档无计费字段，billing 记 rate_limited/requests 而非 neurons；③非 chat 模型（whisper 等）只产 catalog run 不产 access——注册表语义=只记实测事实，非 chat 不算不可用；④默认模型选型看首响应延迟（total_ms）不只 tok/s：compound 166 tok/s 但 3.0s 总耗时（agentic 多步），qwen3.8 1.1s 才是最快响应。（2026-09-20）

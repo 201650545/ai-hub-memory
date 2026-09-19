@@ -1,4 +1,5 @@
 # CHANGELOG.md — AI资源实测 项目流水（append-only）
+- [归档] DROP S-20260830-10 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate2.md。（2026-09-20）
 - [归档] DROP S-20260830-08 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate.md。（2026-09-20）
 - S-20260902-01 tokenrhythm.studio（基元律动）渠道接入 + glm-5.3-flash 激活（2026-09-02）。event：opencli 浏览器走 tokenrhythm.studio/account/keys 拿 key + 加渠道 + 选 default=glm-5.3-flash + 实测激活。处理：①opencli 浏览器拿 key（新建 API Key→一次性展示→DOM 抓 sk_tr_YK5C4_...）；②channels.json 加 keys.tokenrhythm + custom_channels.tokenrhythm（base_url=https://tokenrhythm.studio/v1，models=[glm-5.3-flash,deepseek-v4-flash]，default_model=glm-5.3-flash，billing_type=quota 充值档，free=false）；③:3100 重启 2 次；④实测 model=tokenrhythm:glm-5.3-flash → X-Routed-Channel=tokenrhythm、X-Resolved-Model=glm-5.3-flash、cost_cny=0.00005280、billing_pending=false 激活成功。模型目录 20 款全付费；注册送 ¥10 + 待解锁 ¥58（首次有效调用后）。注意：①探测 reachability 全网 SSL EOF（启动 race，chat 调用不受影响）；②glm-5.3-flash 有 reasoning_tokens，max_tokens 建议 200+（2026-09-02，郭老师拍默认 glm-5.3-flash）
 - S-20260902-02 tokenrhythm 渠道进 deepseek-free 链（2026-09-02）。event：TRAE SOLO CN（DeepSeek V4 Flash 正式版）执行 routing.json 改动 + 备份，跑到一半 assert 误判退出。处理：①routing.json deepseek-free.order 末尾追加 tokenrhythm，disabled=[ark] 保留，high-free 链不动；②备份 _routing_backup_20260902_b4tr.json；③:3100 重启（healthz 200）；④实测 model=deepseek-free 命中 gmi 第一位 MiniMax-M3，X-Fallback-Count=0，tokenrhythm 在链尾作最终兜底；⑤待办：tokenrhythm 是否进 high-free 链（郭老师未拍，理论可入但 billing_type=quota 与 "high-free" 命名冲突）。TRAE 状态：调度大脑杀 + 带 `--remote-debugging-port=9235 --remote-allow-origins=*` 重启 opencli trae-solo Connected（2026-09-02，TRAE SOLO CN + Claude 接管）
@@ -105,3 +106,5 @@
 - [归档] DROP S-20260830-07 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-19-rotate2.md。（2026-09-19）
 - S-20260920-01 探针事实注册表第一期落地并全链路验证通过：probe_reducer 单写者（merge bug×3 修复：_merge（2026-09-20，脚本自动记录）
 - D-20260920-01 探针事实注册表架构定稿（源自GPT Extended 评审 9-19）：Probe只产事实（run文件不可变）、Redu（2026-09-20，脚本自动记录）
+- S-20260920-02 Groq 渠道探针测试闭环（probe_groq.py，同 CF 架构）：catalog 13 模型（6 chat 全 （2026-09-20，脚本自动记录）
+- D-20260920-02 Groq 探针结论：①catalog/models 接口 0 消耗可天天跑，chat 判定用排除表（whisper/tt（2026-09-20，脚本自动记录）
