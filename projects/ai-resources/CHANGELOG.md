@@ -1,4 +1,5 @@
 # CHANGELOG.md — AI资源实测 项目流水（append-only）
+- [归档] DROP S-20260903-12 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate6.md。（2026-09-20）
 - [归档] DROP S-20260903-11 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate5.md。（2026-09-20）
 - [归档] DROP S-20260830-09 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate3.md。（2026-09-20）
 - [归档] DROP S-20260830-10 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate2.md。（2026-09-20）
