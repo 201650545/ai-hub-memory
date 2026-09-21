@@ -1,4 +1,5 @@
 # CHANGELOG.md — AI资源实测 项目流水（append-only）
+- [归档] DROP S-20260920-03 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-21-rotate1.md。（2026-09-21）
 - [归档] DROP S-20260919-01 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate6.md。（2026-09-21）
 - [归档] DROP S-20260919-02 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate6.md。（2026-09-21）
 - [归档] DROP S-20260920-02 — STATE「已完成(最近)」超 8 上限下沉，全文见 archive/projects/ai-resources/2026/2026-09-20-rotate6.md。（2026-09-21）
@@ -120,3 +121,5 @@
 - S-20260920-03 免费档全渠道探针扫描闭环（probe_free_channels.py 通用探针，用户指令：只测免费、禁止付费）：零调用（2026-09-20，脚本自动记录）
 - D-20260920-03 免费渠道探针边界定死（用户 2026-09-20 指令'只测免费档、禁止测付费'是持久红线）：probe_free_ch（2026-09-20，脚本自动记录）
 - S-20260920-04 探针看板落地（用户想人看数据，DTO JSON 不适合人眼）：新增 services/web/probes.html（液（2026-09-20，脚本自动记录）
+- S-20260921-04 三档模型能力硬底线落实（郭老师：编排选定模型必须通用且能力>qwen3.8-27b）：model_routes.json 剔除 allam-2-7b/gpt-oss-20b/lfm-2.5-2.6b/gemini-3.1-flash-lite/sensenova-6.8-flash-lite/dots3-note-prev（末者非通用），fast 8/balanced 13/heavy 17，mtime 热加载免重启，/api/gateway-catalog 实测生效。（2026-09-21，脚本自动记录）
+- S-20260921-05 Sparkle 订阅排障与根因修复：自动更新时间=机场响应头 profile-update-interval 强推（源码证实无条件覆盖本地，改文件三次均被打回，无解）；真因=当前激活订阅是已过期的 BoostNet（9-19 到期），切换 current 到 Bingo Cloud（长期有效/32.9GB/5min 自动更新）并重启，mihomo 流量实测改走 Bingo 组、代理 204。细节入 Claude 记忆 project-sparkle-subscription。（2026-09-21，脚本自动记录）
