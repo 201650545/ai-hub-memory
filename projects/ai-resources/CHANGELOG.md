@@ -123,3 +123,4 @@
 - S-20260920-04 探针看板落地（用户想人看数据，DTO JSON 不适合人眼）：新增 services/web/probes.html（液（2026-09-20，脚本自动记录）
 - S-20260921-04 三档模型能力硬底线落实（郭老师：编排选定模型必须通用且能力>qwen3.8-27b）：model_routes.json 剔除 allam-2-7b/gpt-oss-20b/lfm-2.5-2.6b/gemini-3.1-flash-lite/sensenova-6.8-flash-lite/dots3-note-prev（末者非通用），fast 8/balanced 13/heavy 17，mtime 热加载免重启，/api/gateway-catalog 实测生效。（2026-09-21，脚本自动记录）
 - S-20260921-05 Sparkle 订阅排障与根因修复：自动更新时间=机场响应头 profile-update-interval 强推（源码证实无条件覆盖本地，改文件三次均被打回，无解）；真因=当前激活订阅是已过期的 BoostNet（9-19 到期），切换 current 到 Bingo Cloud（长期有效/32.9GB/5min 自动更新）并重启，mihomo 流量实测改走 Bingo 组、代理 204。细节入 Claude 记忆 project-sparkle-subscription。（2026-09-21，脚本自动记录）
+- S-20260921-04a 补记：郭老师指定 xiaohongshu dots3-note-prev 保留（能力底线不适用此条），已回填 free-balanced（14 成员）线上实测生效；Sparkle 重启机制确认=激活订阅每次自动更新后 restartCore（源码 writeProfileContent shouldRestartCurrent），郭老师自定激活订阅间隔 60min。（2026-09-21，脚本自动记录）
