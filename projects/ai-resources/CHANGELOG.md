@@ -133,3 +133,4 @@
 - S-20260921-10 cloudflare 定稿+底线语义澄清（郭老师：qwen3.8-27b 本尊算过线，免费的保留）：T1 留 qwen3-30b(98)，T2 加 @cf/gpt-oss-120b(37)+@cf/qwen3.8-27b(32) 跨渠道备份，其余剔；能力底线改为 ≥27B 档含本尊+须通用。现 fast 3 / balanced 12 / heavy 11。（2026-09-21，脚本自动记录）
 - S-20260921-10a qwen3.8-27b 全渠道回归（郭老师：底线含本尊，渠道有且免费的都加回）：官网核实 openrouter qwen3.8-27b:free 真免费（0/0价，非伪免费）；groq 版回归 T1 第2席（101tok/s）、openrouter:free 进 T2、cloudflare 版已在前。modelscope 的 Qwen3.8-27B 待郭老师裁决（与"魔塔只用一个模型"规则冲突）。现 fast 4 / balanced 13。（2026-09-21，脚本自动记录）
 - S-20260921-10b 规则层级定稿（郭老师）：「只用 N 个模型」=硬约束绝不加第 N+1（zscc/modelscope 单模型不动，魔塔 qwen3.8-27B 不加）；多模型渠道底线之上自由增补。已入渠道编排规则.md。（2026-09-21，脚本自动记录）
+- S-20260921-11 xiaohongshu/agnes 定稿 + zhipu 踢出编排（郭老师选B）：智谱官方FAQ核实唯一免费=glm-4.7-flash（限流凶429频繁）+glm-4.6v-flash(视觉)，glm-5.2全靠试用额度——无编入价值，渠道保留待买套餐。xiaohongshu=dots3-note-prev 单模型、agnes=agnes-2.5-flash。现 fast 4 / balanced 12 / heavy 11。（2026-09-21，脚本自动记录）
