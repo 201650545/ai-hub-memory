@@ -25,6 +25,11 @@ const TOKEN = get('token', '');
 const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];const txt=last?(last.innerText||last.textContent||'').trim():'';const err=!!(last&&last.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
 const EXTRACT = `(()=>{const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];return JSON.stringify({text:(last?(last.innerText||last.textContent||'').trim():'')})})()`;
 
+// 虚拟化补丁（2026-09-25 实测）：长对话里离屏的 assistant 节点 innerText 会被 React 清空，
+// 不滚到底就探测会把"正常回答"读成 0 字并误报退化（本次差点上报第二轮空回复）。
+const SCROLL = `(()=>{let sc=null;const els=document.querySelectorAll('*');for(let i=0;i<els.length;i++){const e=els[i];if(e.scrollHeight>e.clientHeight+400&&e.clientHeight>300&&(!sc||e.scrollHeight>sc.scrollHeight)){sc=e;}}if(sc){sc.scrollTop=sc.scrollHeight;}window.scrollTo(0,document.body.scrollHeight);return sc?'scrolled':'none';})()`;
+const scrollToBottom = () => { try { run(SCROLL); } catch (e) {} };
+
 const run = js => execFileSync(NODE, [CLI, 'browser', SESSION, 'eval', js].concat(TAB ? ['--tab', TAB] : []), { encoding: 'utf8', maxBuffer: 1024 * 1024 * 30 });
 
 const parse = raw => {
@@ -46,6 +51,8 @@ let emptyStreak = 0;
 let lowStreak = 0;
 
 const save = () => {
+  scrollToBottom();
+  sleep(1.6);
   const p = parse(run(EXTRACT));
   if (!p || !p.text) { console.log('EXTRACT_FAILED'); process.exit(3); }
   if (OUT) {
@@ -63,6 +70,10 @@ for (let i = 1; i <= MAX; i++) {
   const gap = (lastLen > 0) ? FAST : FIRST;
   sleep(gap);
   elapsed += gap;
+
+  scrollToBottom();
+  sleep(1.6);
+  elapsed += 1.6;
 
   const s = parse(run(PROBE));
   if (!s) { console.log(`[${elapsed}s] probe failed, retry`); continue; }
@@ -84,7 +95,7 @@ for (let i = 1; i <= MAX; i++) {
       lastLen = s.len;
       if (lowStreak >= 12) {
         console.log(`LOW_REPLY after ${elapsed}s — 正文始终仅 ${s.len} 字（< min=${MIN}），最后尾部："${s.tail || ''}"`);
-        console.log('ACTION: 疑似实例退化/中途截断，按 SOP 上报用户；同实例重试无收益，勿自动换模型兜底');
+        console.log('ACTION: 先自证读取侧（本脚本每轮已滚到底；仍 0 字再手动截图核实是否虚拟化/折叠），确认后才判退化并按 SOP 上报；同实例重试无收益，勿自动换模型兜底');
         process.exit(4);
       }
       continue;
