@@ -22,8 +22,10 @@ const MIN = parseInt(get('min', '120'), 10);
 // 可选尾令牌：提示词要求首末行原样输出令牌时传本参数，判据从「长度稳定」升级为「令牌已收尾」
 const TOKEN = get('token', '');
 
-const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];const txt=last?(last.innerText||last.textContent||'').trim():'';const err=!!(last&&last.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
-const EXTRACT = `(()=>{const msgs=document.querySelectorAll('[data-message-author-role=assistant]');const last=msgs[msgs.length-1];return JSON.stringify({text:(last?(last.innerText||last.textContent||'').trim():'')})})()`;
+// 取"最后一个非空 assistant 节点"：镜像站会在末尾留一个空占位节点，
+// 只取 msgs[length-1] 会把已渲染好的完整回答读成 0 字（2026-09-26 实测误报 EMPTY_REPLY）。
+const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');let txt='';for(let i=msgs.length-1;i>=0;i--){const t=(msgs[i].innerText||msgs[i].textContent||'').trim();if(t.length>txt.length)txt=t;if(txt.length>200)break;}const err=Array.from(msgs).some(m=>!!m.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
+const EXTRACT = `(()=>{const a=document.querySelectorAll('[data-message-author-role=assistant]');let best='';for(let i=a.length-1;i>=0;i--){const t=(a[i].innerText||a[i].textContent||'').trim();if(t.length>best.length)best=t;if(best.length>200)break;}return JSON.stringify({text:best})})()`;
 
 // 虚拟化补丁（2026-09-25 实测）：长对话里离屏的 assistant 节点 innerText 会被 React 清空，
 // 不滚到底就探测会把"正常回答"读成 0 字并误报退化（本次差点上报第二轮空回复）。
