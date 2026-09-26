@@ -24,12 +24,15 @@ const TOKEN = get('token', '');
 
 // 取"最后一个非空 assistant 节点"：镜像站会在末尾留一个空占位节点，
 // 只取 msgs[length-1] 会把已渲染好的完整回答读成 0 字（2026-09-26 实测误报 EMPTY_REPLY）。
-const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');let txt='';for(let i=msgs.length-1;i>=0;i--){const t=(msgs[i].innerText||msgs[i].textContent||'').trim();if(t.length>txt.length)txt=t;if(txt.length>200)break;}const err=Array.from(msgs).some(m=>!!m.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
-const EXTRACT = `(()=>{const a=document.querySelectorAll('[data-message-author-role=assistant]');let best='';for(let i=a.length-1;i>=0;i--){const t=(a[i].innerText||a[i].textContent||'').trim();if(t.length>best.length)best=t;if(best.length>200)break;}return JSON.stringify({text:best})})()`;
+const PROBE = `(()=>{const stop=document.querySelector('[data-testid=stop-button],button[aria-label*=Stop]');const msgs=document.querySelectorAll('[data-message-author-role=assistant]');let txt='';let idx=-1;for(let i=msgs.length-1;i>=0;i--){const t=(msgs[i].innerText||msgs[i].textContent||'').trim();if(t){txt=t;idx=i;break;}}const err=Array.from(msgs).some(m=>!!m.querySelector('[class*="surface-error"]'));return JSON.stringify({stop:!!stop,err,count:msgs.length,idx,len:txt.length,tail:txt.slice(-200).replace(/\\s+/g,' ')})})()`;
+const EXTRACT = `(()=>{const a=document.querySelectorAll('[data-message-author-role=assistant]');let best='';for(let i=a.length-1;i>=0;i--){const t=(a[i].innerText||a[i].textContent||'').trim();if(t){best=t;break;}}return JSON.stringify({text:best})})()`;
 
 // 虚拟化补丁（2026-09-25 实测）：长对话里离屏的 assistant 节点 innerText 会被 React 清空，
 // 不滚到底就探测会把"正常回答"读成 0 字并误报退化（本次差点上报第二轮空回复）。
-const SCROLL = `(()=>{let sc=null;const els=document.querySelectorAll('*');for(let i=0;i<els.length;i++){const e=els[i];if(e.scrollHeight>e.clientHeight+400&&e.clientHeight>300&&(!sc||e.scrollHeight>sc.scrollHeight)){sc=e;}}if(sc){sc.scrollTop=sc.scrollHeight;}window.scrollTo(0,document.body.scrollHeight);return sc?'scrolled':'none';})()`;
+// 必须把**最后一条 assistant 消息**滚进视口：只滚容器（甚至滚到 sidebar）会让最新消息保持未渲染，
+// innerText 读成 0 或只剩引用角标，进而被误判成"空回复 / 未送达"（2026-09-26 实测）。
+// 页面自带的"跳到最新"按钮一并点，双保险。
+const SCROLL = `(()=>{const a=document.querySelectorAll('[data-message-author-role=assistant]');if(a.length){a[a.length-1].scrollIntoView({block:'end'});}const btn=Array.from(document.querySelectorAll('button')).filter(b=>/bottom|Down/i.test(b.getAttribute('aria-label')||''));btn.forEach(b=>{try{b.click();}catch(e){}});let sc=null;const els=document.querySelectorAll('*');for(let i=0;i<els.length;i++){const e=els[i];if(e.scrollHeight>e.clientHeight+400&&e.clientHeight>300&&(!sc||e.scrollHeight>sc.scrollHeight)){sc=e;}}if(sc){sc.scrollTop=sc.scrollHeight;}window.scrollTo(0,document.body.scrollHeight);return (a.length?'last-into-view':'none')+':jump='+btn.length;})()`;
 const scrollToBottom = () => { try { run(SCROLL); } catch (e) {} };
 
 const run = js => execFileSync(NODE, [CLI, 'browser', SESSION, 'eval', js].concat(TAB ? ['--tab', TAB] : []), { encoding: 'utf8', maxBuffer: 1024 * 1024 * 30 });
@@ -54,7 +57,7 @@ let lowStreak = 0;
 
 const save = () => {
   scrollToBottom();
-  sleep(1.6);
+  sleep(2.6);
   const p = parse(run(EXTRACT));
   if (!p || !p.text) { console.log('EXTRACT_FAILED'); process.exit(3); }
   if (OUT) {
@@ -74,13 +77,13 @@ for (let i = 1; i <= MAX; i++) {
   elapsed += gap;
 
   scrollToBottom();
-  sleep(1.6);
-  elapsed += 1.6;
+  sleep(2.6);
+  elapsed += 2.6;
 
   const s = parse(run(PROBE));
   if (!s) { console.log(`[${elapsed}s] probe failed, retry`); continue; }
   const tokOk = !TOKEN || (s.tail || '').includes(TOKEN);
-  console.log(`[${elapsed}s] stop=${s.stop} count=${s.count} len=${s.len} tail="${(s.tail || '').slice(-24)}"`);
+  console.log(`[${elapsed}s] stop=${s.stop} count=${s.count} idx=${s.idx} len=${s.len} tail="${(s.tail || '').slice(-24)}"`);
 
   if (s.err && !s.stop) {
     console.log(`GENERATION_ERROR after ${elapsed}s — assistant 节点内出现错误横幅（如 "Something went wrong"），本次生成已失败`);
