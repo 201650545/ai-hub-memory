@@ -42,6 +42,21 @@
   不声明成能力实测；② **容量类失败（429/5xx/队列满）保留席位**，连续 3 天才报警且文案不得写"是否下架"，
   与判定表一致。
 
+- [D-GW-20260928-08] **暂停多模态备席，先做完"逐渠道每日设定检查"**（用户 2026-09-28 深夜，逐字）：
+  「**这个先不做吧。先做每天对渠道定时任务的测试检查，先把这个做完吧。目前只对 OpenRouter 做了设定，其他渠道还没做专门的设定**」。
+  落地：`services/channel_profiles.py`（每渠道三条设定：目录取法 / 免费性判据 / 能不能发请求）
+  + `scripts/channel_free_audit.py`（计划任务 **ChannelFreeAudit 每日 11:50**，只报不写编排）
+  + 夹具 `scripts/channel_audit_acceptance.py` 15 项。三条口径同时定下：
+  ① **目录不含 ≠ 下架**，"查无=下架"只允许由同时是定价权威的渠道（现只有 openrouter）作出；
+  ② **赠金白名单不等于免费**（siliconflow 50 个判 gift_credit，不判 free）；
+  ③ 判不出就写 unknown，**不许拿渠道级标记冒充逐模型证据**；取数失败保留 last-known-good 并标 stale_days。
+- [D-GW-20260928-09] **待郭老师一句话：ARK 那条红线落在哪个 id 上**。`FORBIDDEN` 与
+  `sealed_channels` 都写 `ark-coding`，但渠道注册表里没有这个 id，注册表里是 `ark`；
+  而 `ark` 在 `probe_free_channels.FREE_CHANNELS` 可测白名单里，`data/model_perf.json`
+  还留有 `ark/doubao-seed-2-0-lite-260428` 的历史实测样本 → 这条红线今天实际没保护到那个渠道。
+  Agent 侧处置：属红线定义，不擅改名单；新层 `channel_profiles.PENDING_RULING` 里对 `ark` **不放行**
+  （本轮零请求），编排里 ark 无席位故无功能代价。要恢复或收紧，一句话即可。
+
 ## 待失效 / 待复查
 - 旧别名 `free-fast / free-balanced / free-heavy` 隐藏保留至 **2026-10-05**（另一项目迁移期）。
   删除前必须先把只挂在旧别名上的快席（现知 `groq/openai/gpt-oss-120b`，129.9 tok/s）挪进 live 线，
