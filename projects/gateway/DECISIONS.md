@@ -70,6 +70,8 @@
 - [D-GW-20260928-15] typesafe/jev-latest 判成 paid（官方 openapi 自述：Output 免费、Input 按 token 计费 → 输入非 0），但它是 Jev 决策线首席、郭老师 2026-09-25 亲自指定单独开线，**只报警不摘**：付费禁测红线之外的"渠道级钦定接入"优先于免费口径，改它需要他点头。（2026-09-28）
 
 
+- [D-GW-20260928-16] 文本链模态闸补到非 OpenRouter 渠道（郭老师 #23，优先于多模态备席 #21）：判据来自 11:50 设定检查顺带读的公开页分节，首个源＝Workers AI 定价原文的 `## LLM/Embeddings/Image/Audio/Other` 小节，65 个模型逐条出模态。三条口径定死：①**判得出才拦**，页面上查无此模型一律放行，不拿「我没查到」当成「它不是文本」；②判据只认**当天快照**（与价目页同一条新鲜度规则）；③非文本模态属**硬边界**，在架席当日摘（auto_remove_hard_boundary/not_chat_capable），不只是跳过不接。闸门挂在 policy_allowed() 单一函数上，候选准入·在架删除·写后复验·纯快线取数池四道面共用。gemini/nvidia/siliconflow 的模态源另立待办。（2026-09-28）
+
 ## 待失效 / 待复查
 - 旧别名 `free-fast / free-balanced / free-heavy` 隐藏保留至 **2026-10-05**（另一项目迁移期）。
   删除前必须先把只挂在旧别名上的快席（现知 `groq/openai/gpt-oss-120b`，129.9 tok/s）挪进 live 线，
