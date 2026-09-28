@@ -78,6 +78,13 @@
 
 - [D-GW-20260928-19] CC switch 同步（郭老师「然后更新到 CC switch 里面」）：`gateway-3100`（app=claude，current=1）的 `ANTHROPIC_DEFAULT_HAIKU_MODEL` 与 `ANTHROPIC_MODEL` 从 `free-balanced` 改指 `free-flash`，改前备份 `backups/db_backup_pre-alias-del_20260928_233711.db`，改后读回验证。`~/.claude/settings.json` 里残留的旧串**不手改**——该文件是 cc-switch 切 provider 时的重写产物，手工改会被覆盖并造成"我改了但没生效"的假象。同轮 `_jev_decide` 三档映射收进两线（fast/balanced→free-flash，heavy→free-high，低置信升 free-high），需 :3100 重启窗口才生效。（2026-09-28）
 
+- [D-GW-20260928-20] **删掉的编排别名要本地硬拒，不许走 DEFAULT_CHAIN 兜底**（本轮自查发现，非郭老师提出）：
+  链名不存在时 `route_completion` 原样回落默认链，把 `free-balanced` 当模型 id 真调 11 个渠道（实测 6 次上游
+  400/404 + agnes 限流保护被触发）。新口径＝`catalog_routes.REMOVED_ALIASES` 记旧名→后继线，
+  命中即 `route_source=retired_alias`、`attempted=[]`、报文直说"请改用 free-flash / free-high"。
+  红线渠道未被喷到（zscc/deepseek/openrouter/siliconflow/zhipu 全部 quota-guard 预过滤剔掉）。
+  这条对未来任何一次改名同样适用：**改名必须留 tombstone，不能让旧名变成"拼错的模型名"**。（2026-09-28）
+
 ## 待失效 / 待复查
 - ~~旧别名 `free-fast / free-balanced / free-heavy` 隐藏保留至 **2026-10-05**~~ ——
   已于 **2026-09-28** 按郭老师指令提前删除（D-GW-20260928-18）。仍写旧别名的客户端现在拿 HTTP 502，
