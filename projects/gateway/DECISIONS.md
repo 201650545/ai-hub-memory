@@ -74,9 +74,15 @@
 
 - [D-GW-20260928-17] #21 单席多模态线的处置＝**不花钱，先保留报警器**（郭老师 2026-09-28 夜）。四条单席链（jev / voice-clone / voice-translate / video-gen）逐一线上实测：agnes 视频第二席要么 403 要付费额度、要么 429 常年限流；硅基流动 OpenAI 兼容 base 上没有任何视频/克隆路由（四路径 404）；会真翻译的免费席只有 groq 的 whisper，硅基流动 ASR 只转写不译、Gemini live-translate 是 WS 实时协议，塞进链里回落必失败＝假备胎；OR 的 jev 候选不在当日全 0 价白名单。所以不编造备胎，改交付**单点报警器**：00:23 任务按链的原始成员算出单席链（共享席不折叠、被别的链代探过就沿用事实），首席当日实测不过即写警报；paid-fast 不入账面以免稀释警报。（2026-09-28）
 
+- [D-GW-20260928-18] 免费面收敛成**两条线**（郭老师 2026-09-28 指令：「free 旧 3 条都删了，只保留 free flash 和 free high」）：`free-fast / free-balanced / free-heavy` 于 09-28 提前删除（原计划隐藏保留至 10-05），链数 17 → 14、席位账面 75 → 56。口径是**删别名不删能力**——三链并集 19 席里 18 席在 free-high/free-flash/fast 另有归属，唯一只住旧链的 `nvidia/nemotron-3-ultra-550b-a55b`（AA=23 < 准入 28、31.5 tok/s）本就进不了新线，随别名出架。`groq/openai/gpt-oss-120b`（129.9 tok/s，原 10-05 删除前置担心项）实测仍在 `fast`，#20 因此结掉。写入口仍是 `routes_writer.apply_change` 唯一路径，approval_id=`cli:guo-yongtao@2026-09-28-删旧三别名`，备份 `_bak_model_routes_20260928_233553_manual_guo.json`。附带把纯快线取数池从写死的 `POOL_CHAINS` 常量改成 `pool_chains()` 前缀规则＝所有 `free-` 开头的免费线 + fast，理由：新免费线自动入池，不靠人记得改常量。（2026-09-28）
+
+- [D-GW-20260928-19] CC switch 同步（郭老师「然后更新到 CC switch 里面」）：`gateway-3100`（app=claude，current=1）的 `ANTHROPIC_DEFAULT_HAIKU_MODEL` 与 `ANTHROPIC_MODEL` 从 `free-balanced` 改指 `free-flash`，改前备份 `backups/db_backup_pre-alias-del_20260928_233711.db`，改后读回验证。`~/.claude/settings.json` 里残留的旧串**不手改**——该文件是 cc-switch 切 provider 时的重写产物，手工改会被覆盖并造成"我改了但没生效"的假象。同轮 `_jev_decide` 三档映射收进两线（fast/balanced→free-flash，heavy→free-high，低置信升 free-high），需 :3100 重启窗口才生效。（2026-09-28）
+
 ## 待失效 / 待复查
-- 旧别名 `free-fast / free-balanced / free-heavy` 隐藏保留至 **2026-10-05**（另一项目迁移期）。
-  删除前必须先把只挂在旧别名上的快席（现知 `groq/openai/gpt-oss-120b`，129.9 tok/s）挪进 live 线，
-  否则它会从 `fast` 的取数池里掉出去。
+- ~~旧别名 `free-fast / free-balanced / free-heavy` 隐藏保留至 **2026-10-05**~~ ——
+  已于 **2026-09-28** 按郭老师指令提前删除（D-GW-20260928-18）。仍写旧别名的客户端现在拿 HTTP 502，
+  已知 `free-balanced` 实测 502；`~/.claude/settings.json` 的旧串等 cc-switch 下次切换自动刷新。
+- 旧别名删除后 `free-flash` 上 openrouter 占 8/13 > 50%，干跑报 `WARN CHANNEL_CONCENTRATION`：
+  单渠道集中度暂只警不动，等一次真实降集中度候选（同模型其他渠道 free 档）再自动调序。
 - 样本缺 `source / outcome_class / probe_epoch` 字段 → reliability 自动降序、40/60 合并、
   基于真实流量的性能回滚保持关闭；这三条是开"完整版"闸门的前置（D-GW 设计 R2-B 第 1-4 项）。
