@@ -71,7 +71,7 @@ def scan_tracked(root, findings, files_scanned, counter):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--repo', default='D:/项目')
-    ap.add_argument('--state', default='D:/ai-hub-memory/projects/devel-tools/STATE.md')
+    ap.add_argument('--state', default='D:/项目/ai-hub-memory/projects/devel-tools/STATE.md')
     ap.add_argument('--ccswitch-log', default=os.path.expanduser('~/.cc-switch/logs/cc-switch.log'))
     ap.add_argument('--range', default='8ec04de1..HEAD')
     ap.add_argument('--out', default='')
